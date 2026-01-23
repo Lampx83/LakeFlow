@@ -1,0 +1,102 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+
+# =========================
+# Virtual environments
+# =========================
+venv/
+/.venv/
+env/
+.env/
+.env.*
+!.env.example
+
+# =========================
+# IDE / Editor
+# =========================
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# =========================
+# OS
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Logs
+# =========================
+*.log
+logs/
+
+# =========================
+# Build / cache
+# =========================
+build/
+dist/
+.cache/
+.pytest_cache/
+.mypy_cache/
+
+# =========================
+# Jupyter / experiments
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# Data Lake (KHÔNG COMMIT)
+# =========================
+000_inbox/
+100_raw/
+200_staging/
+300_processed/
+400_embeddings/
+500_catalog/
+
+# =========================
+# Model files
+# =========================
+*.bin
+*.pt
+*.pth
+*.onnx
+*.safetensors
+
+# =========================
+# Vector DB / Qdrant
+# =========================
+qdrant_data/
+qdrant_storage/
+
+# =========================
+# Numpy / large arrays
+# =========================
+*.npy
+*.npz
+
+# =========================
+# Temporary files
+# =========================
+*.tmp
+*.part
+
+# =========================
+# Export / debug artifacts
+# =========================
+project_code.txt
+embeddings.jsonl
+
+# =========================
+# Docker
+# =========================
+*.pid

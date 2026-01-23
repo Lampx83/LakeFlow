@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.7.4
+    container_name: neuai-qdrant
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  api:
+    build: .
+    container_name: neuai-api
+    depends_on:
+      - qdrant
+    ports:
+      - "8011:8011"
+    env_file:
+      - .env
+    volumes:
+      - neuai_data:/data
+    environment:
+      NEUAI_DATA_BASE_PATH: /data
+    restart: unless-stopped
+
+volumes:
+  neuai_data:
+  qdrant_data:
