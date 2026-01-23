@@ -136,7 +136,7 @@ uvicorn neuai.backend.main:app --reload --port 8011
 ### 6.1 Bước 0 – Ingest Inbox → Raw
 
 ```bash
-python src/neuai/scripts/step0_ingest_inbox.py
+python neuai/scripts/step0_ingest_inbox.py
 ```
 
 Chức năng:
@@ -151,7 +151,7 @@ Chức năng:
 ### 6.2 Bước 1 – Staging (PDF)
 
 ```bash
-python src/neuai/scripts/step1_staging.py
+python neuai/scripts/step1_staging.py
 ```
 
 Sinh:
@@ -164,7 +164,7 @@ Sinh:
 ### 6.3 Bước 2 – Processed (AI-ready)
 
 ```bash
-python src/neuai/scripts/step2_processed.py
+python neuai/scripts/step2_processed.py
 ```
 
 Sinh:
@@ -179,7 +179,7 @@ Sinh:
 ### 6.4 Bước 3 – Embeddings
 
 ```bash
-python src/neuai/scripts/step3_embeddings.py
+python neuai/scripts/step3_embeddings.py
 ```
 
 Sinh:
@@ -194,7 +194,7 @@ Sinh:
 ### 6.5 Bước 4 – Ingest vào Qdrant
 
 ```bash
-python src/neuai/scripts/step41_qdrant_ingest.py
+python neuai/scripts/step41_qdrant_ingest.py
 ```
 
 ---

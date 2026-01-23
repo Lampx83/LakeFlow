@@ -2,7 +2,7 @@ import os
 
 # ================== CẤU HÌNH ==================
 PROJECT_ROOT = "../.."                 # Thư mục gốc dự án
-OUTPUT_FILE = "project_code.txt"   # File xuất code
+OUTPUT_FILE = "project_code.txt"  # File xuất code
 
 # Thư mục không duyệt
 EXCLUDE_DIRS = {
