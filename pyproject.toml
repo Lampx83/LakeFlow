@@ -1,5 +1,5 @@
 [project]
-name = "neuai"
+name = "eduai"
 version = "0.1.0"
 
 [tool.setuptools]

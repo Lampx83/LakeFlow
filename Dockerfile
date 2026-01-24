@@ -20,4 +20,4 @@ COPY . .
 # ---------- Env ----------
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app/src
-CMD ["uvicorn", "neuai.backend.main:app", "--host", "0.0.0.0", "--port", "8011"]
+CMD ["uvicorn", "eduai.backend.main:app", "--host", "0.0.0.0", "--port", "8011"]

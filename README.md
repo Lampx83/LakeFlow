@@ -1,8 +1,8 @@
-# NEUAI – AI Data & Semantic Search Platform
+# EDUAI – AI Data & Semantic Search Platform
 
 ## 1. Giới thiệu
 
-**NEUAI** là nền tảng xử lý dữ liệu và tìm kiếm ngữ nghĩa (Semantic Search) phục vụ các hệ thống AI/LLM nội bộ.
+**EDUAI** là nền tảng xử lý dữ liệu và tìm kiếm ngữ nghĩa (Semantic Search) phục vụ các hệ thống AI/LLM nội bộ.
 Hệ thống được thiết kế theo kiến trúc **Data Lake nhiều tầng**, hỗ trợ:
 
 * Ingest dữ liệu thô (PDF, Excel, …)
@@ -24,7 +24,7 @@ Mục tiêu chính:
 ### 2.1 Data Lake Zones
 
 ```
-NEUAI_DATA_BASE_PATH/
+EDUAI_DATA_BASE_PATH/
 ├── 000_inbox/        # File đầu vào (theo domain)
 ├── 100_raw/          # File raw đã hash + deduplicate
 ├── 200_staging/      # Phân tích & validation
@@ -82,13 +82,13 @@ Danh sách đầy đủ xem tại: `requirements.txt`
 Tạo file `.env` tại thư mục gốc dự án:
 
 ```env
-NEUAI_DATA_BASE_PATH=/absolute/path/to/neuai_data
-SECRET_KEY=neuai-secret-key
+EDUAI_DATA_BASE_PATH=/absolute/path/to/eduai_data
+SECRET_KEY=eduai-secret-key
 ```
 
 > **Lưu ý:**
 >
-> * `NEUAI_DATA_BASE_PATH` phải là đường dẫn tuyệt đối
+> * `EDUAI_DATA_BASE_PATH` phải là đường dẫn tuyệt đối
 > * Thư mục sẽ được tạo tự động nếu chưa tồn tại
 
 ---
@@ -98,11 +98,11 @@ SECRET_KEY=neuai-secret-key
 ### 5.1 Chạy bằng Docker (khuyến nghị)
 
 ```bash
-docker build -t neuai-backend .
+docker build -t eduai-backend .
 docker run -p 8011:8011 \
   --env-file .env \
-  -v /data/neuai:/data/neuai \
-  neuai-backend
+  -v /data/eduai:/data/eduai \
+  eduai-backend
 ```
 
 API sẽ chạy tại:
@@ -126,7 +126,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-uvicorn neuai.backend.main:app --reload --port 8011
+uvicorn eduai.backend.main:app --reload --port 8011
 ```
 
 ---
@@ -136,7 +136,7 @@ uvicorn neuai.backend.main:app --reload --port 8011
 ### 6.1 Bước 0 – Ingest Inbox → Raw
 
 ```bash
-python neuai/scripts/step0_ingest_inbox.py
+python eduai/scripts/step0_ingest_inbox.py
 ```
 
 Chức năng:
@@ -151,7 +151,7 @@ Chức năng:
 ### 6.2 Bước 1 – Staging (PDF)
 
 ```bash
-python neuai/scripts/step1_staging.py
+python eduai/scripts/step1_staging.py
 ```
 
 Sinh:
@@ -164,7 +164,7 @@ Sinh:
 ### 6.3 Bước 2 – Processed (AI-ready)
 
 ```bash
-python neuai/scripts/step2_processed.py
+python eduai/scripts/step2_processed.py
 ```
 
 Sinh:
@@ -179,7 +179,7 @@ Sinh:
 ### 6.4 Bước 3 – Embeddings
 
 ```bash
-python neuai/scripts/step3_embeddings.py
+python eduai/scripts/step3_embeddings.py
 ```
 
 Sinh:
@@ -194,7 +194,7 @@ Sinh:
 ### 6.5 Bước 4 – Ingest vào Qdrant
 
 ```bash
-python neuai/scripts/step41_qdrant_ingest.py
+python eduai/scripts/step41_qdrant_ingest.py
 ```
 
 ---
