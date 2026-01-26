@@ -15,9 +15,8 @@ __pycache__/
 venv/
 /.venv/
 env/
-.env.local/
-.env.example
-!.env.example
+.env
+
 
 # =========================
 # IDE / Editor
