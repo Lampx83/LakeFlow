@@ -11,6 +11,7 @@ from lakeflow.api.pipeline import router as pipeline_router
 from lakeflow.api.system import router as system_router
 from lakeflow.api.qdrant import router as qdrant_router
 from lakeflow.api.admin import router as admin_router
+from lakeflow.api.inbox import router as inbox_router
 
 import os
 from pathlib import Path
@@ -75,6 +76,11 @@ def create_app() -> FastAPI:
     )
     app.include_router(
         admin_router,
+    )
+    app.include_router(
+        inbox_router,
+        prefix="/inbox",
+        tags=["inbox"],
     )
 
     # -------------------------

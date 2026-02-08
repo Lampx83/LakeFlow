@@ -3,14 +3,17 @@ import socket
 from pathlib import Path
 
 def _resolve_api_base() -> str:
-    base = os.getenv("API_BASE_URL", "http://localhost:8011")
+    base = os.getenv("API_BASE_URL", "http://localhost:8011").strip()
+    # Tên service cũ (eduai-backend) không còn — chuẩn hóa sang lakeflow-backend khi chạy Docker
+    if base and "eduai-backend" in base:
+        base = base.replace("eduai-backend", "lakeflow-backend")
     # Khi chạy dev trên host, "lakeflow-backend" không resolve → dùng localhost
-    if "lakeflow-backend" in base:
+    if base and "lakeflow-backend" in base:
         try:
             socket.gethostbyname("lakeflow-backend")
         except socket.gaierror:
             base = "http://localhost:8011"
-    return base
+    return base or "http://localhost:8011"
 
 API_BASE = _resolve_api_base()
 LAKEFLOW_MODE = os.getenv("LAKEFLOW_MODE", "DEV")

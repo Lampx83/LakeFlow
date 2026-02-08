@@ -50,6 +50,9 @@ services:
   lakeflow-frontend:
     env_file:
       - .env
+    environment:
+      # Trong Docker luôn gọi backend qua tên service (lakeflow-backend). Nếu .env có eduai-backend thì bị ghi đè.
+      API_BASE_URL: http://lakeflow-backend:8011
     build:
       context: ./frontend/streamlit
     container_name: lakeflow-frontend
