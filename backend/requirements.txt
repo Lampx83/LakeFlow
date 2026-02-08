@@ -1,0 +1,58 @@
+# =========================
+# Core runtime
+# =========================
+python-dotenv>=1.0.0
+
+# =========================
+# Data & Storage
+# =========================
+pandas>=2.0.0
+numpy==1.26.4
+
+# =========================
+# File & Text processing
+# =========================
+PyPDF2>=3.0.0
+pdfplumber>=0.11.0
+pypdfium2<5.0
+python-docx>=1.1.0
+openpyxl>=3.1.0
+
+# =========================
+# AI / NLP (optional – dùng dần)
+# =========================
+sentence-transformers>=2.2.2
+transformers>=4.36.0
+# torch để riêng, cài khi cần embedding
+# torch>=2.0.0
+
+# =========================
+# Backend API (để sẵn)
+# =========================
+fastapi>=0.110.0
+uvicorn>=0.27.0
+
+# =========================
+# Utils
+# =========================
+tqdm>=4.66.0
+loguru>=0.7.2
+
+qdrant-client==1.16.2
+
+# =========================
+# Security / Auth
+# =========================
+passlib[bcrypt]>=1.7.4,<1.8
+bcrypt<4.0
+python-jose>=3.3.0
+
+# =========================
+# Dev / Test (API client, scripts)
+# =========================
+requests>=2.31.0
+
+grpcio>=1.59.0,<2.0
+
+
+

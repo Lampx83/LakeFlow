@@ -1,0 +1,8 @@
+streamlit>=1.32.0
+requests>=2.31.0
+# Tránh cảnh báo Pandas: "requires version '1.3.6' or newer of 'bottleneck'"
+bottleneck>=1.3.6
+# Data Lake Explorer: xem nội dung file
+numpy>=1.24.0
+pypdf>=3.0.0
+pandas>=2.0.0

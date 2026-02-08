@@ -1,0 +1,19 @@
+# Override cho production / CI deploy
+# Dùng kèm: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# - eduai_data: dùng named volume (không bind path Mac/Linux cụ thể)
+# - Backend: bỏ mount source, bỏ --reload
+# - Frontend: bỏ mount ./backend (chỉ giữ eduai_data)
+
+services:
+  eduai-backend:
+    volumes:
+      - eduai_data:/data
+    command: uvicorn eduai.main:app --host 0.0.0.0 --port 8011
+
+  eduai-frontend:
+    volumes:
+      - eduai_data:/data
+
+volumes:
+  eduai_data: {}  # Named volume, không bind path host
