@@ -63,7 +63,6 @@ LakeFlow/
 │   └── streamlit/     # Streamlit control UI
 │       └── README.md
 ├── docker-compose.yml
-├── docker-compose.prod.yml
 ├── .env.example
 └── README.md
 ```
@@ -126,7 +125,7 @@ Do not commit `.env`; use `.env.example` as reference.
 ## Deployment
 
 - Run on VPS, on-prem, or cloud (e.g. AWS, GCP, Azure).
-- Production: use `docker-compose.prod.yml` with `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d`.
+- Use `docker compose up -d` (or `docker compose up -d --build`) to run all services; configure `.env` on the server (e.g. `LAKEFLOW_DATA_BASE_PATH`, `QDRANT_HOST`, `API_BASE_URL`).
 - Optional: configure GitHub Actions deploy workflow (e.g. SSH deploy on push to `main`); see workflow comments and repo docs.
 
 ---

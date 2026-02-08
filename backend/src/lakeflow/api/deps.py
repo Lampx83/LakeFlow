@@ -1,7 +1,7 @@
-from functools import lru_cache
-from qdrant_client import QdrantClient
-from sentence_transformers import SentenceTransformer
 import os
+from functools import lru_cache
+
+from sentence_transformers import SentenceTransformer
 
 COLLECTION_NAME = "lakeflow_chunks"
 
@@ -10,10 +10,7 @@ COLLECTION_NAME = "lakeflow_chunks"
 def get_qdrant_client():
     from qdrant_client import QdrantClient
 
-    client = QdrantClient(url=os.getenv("QDRANT_URL", "http://localhost:6333"))
-
-
-    return client
+    return QdrantClient(url=os.getenv("QDRANT_URL", "http://localhost:6333"))
 
 @lru_cache
 def get_embedding_model() -> SentenceTransformer:

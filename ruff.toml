@@ -23,3 +23,7 @@ ignore = [
 
 [lint.isort]
 known-first-party = ["lakeflow"]
+
+# Scripts gọi load_dotenv() trước khi import lakeflow → E402 chấp nhận
+[lint.per-file-ignores]
+"backend/src/lakeflow/scripts/*.py" = ["E402"]

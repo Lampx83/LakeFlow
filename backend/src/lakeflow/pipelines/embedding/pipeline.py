@@ -1,19 +1,11 @@
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional
-from datetime import datetime
-import json
-import tempfile
-import shutil
+from typing import Literal, Optional
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
 from lakeflow.common.jsonio import write_json
-from lakeflow.common.nas_io import (
-    nas_safe_copy,
-    nas_safe_mkdir,
-    nas_safe_read_json,
-)
+from lakeflow.common.nas_io import nas_safe_mkdir, nas_safe_read_json
 
 
 EmbeddingStatus = Literal["EMBEDDED", "SKIPPED"]
@@ -53,7 +45,9 @@ def run_embedding_pipeline(
 
     # =====================================================
     # 2. Load chunks (đọc từ NAS với retry)
-    # ==============================================    texts = [c["text"].strip() for c in chunks if c.get("text")]
+    # =====================================================
+    chunks = nas_safe_read_json(chunks_file)
+    texts = [c["text"].strip() for c in chunks if c.get("text")]
 
     if not texts:
         print(f"[400] No valid text chunks for {file_hash}, skip")
@@ -82,6 +76,9 @@ def run_embedding_pipeline(
         for c in chunks
     ]
 
-    # ==============================================
+    nas_safe_mkdir(out_dir)
+    np.save(final_path, vectors)
+    write_json(out_dir / "chunks_meta.json", chunks_meta)
+
     print(f"[400] Completed embedding for {file_hash}")
     return "EMBEDDED"
