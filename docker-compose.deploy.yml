@@ -1,9 +1,9 @@
 # Override dùng khi deploy lên server (chạy cùng docker-compose.yml)
 # Ví dụ: docker compose -f docker-compose.yml -f docker-compose.deploy.yml up -d --build
 #
-# Data lake path:
-#   Local (dev): docker-compose.yml → /Users/mac/Library/CloudStorage/SynologyDrive-research
-#   Server:      docker-compose.deploy.yml → /datalake/research
+# Data lake path (no sudo):
+#   Default: LAKEFLOW_DATA_PATH=$REPO_DIR/data (set in deploy workflow)
+#   Server custom: export LAKEFLOW_DATA_PATH=/datalake/research (create dir with sudo once, then deploy user needs rwx)
 #
 # - Backend: bỏ mount source, bỏ --reload
 # - Frontend: bỏ mount ./backend
@@ -18,11 +18,11 @@ services:
     volumes:
       - lakeflow_data:/data
 
-# Ghi đè volume: bind mount /datalake/research trên server (tránh path Mac từ docker-compose.yml)
+# Bind volume to LAKEFLOW_DATA_PATH (default: repo/data, no sudo) or set on server for e.g. /datalake/research
 volumes:
   lakeflow_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /datalake/research
+      device: ${LAKEFLOW_DATA_PATH:-./data}

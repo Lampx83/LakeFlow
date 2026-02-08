@@ -24,8 +24,9 @@ jobs:
           port: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
           script: |
             set -e
-            cd "${REPO_DIR:-$HOME/lakeflow}"
+            REPO_DIR="${REPO_DIR:-$HOME/lakeflow}"
+            cd "$REPO_DIR"
             git pull origin main
-            sudo mkdir -p /datalake/research
+            export LAKEFLOW_DATA_PATH=/datalake/research
             docker compose -f docker-compose.yml -f docker-compose.deploy.yml down -v
             docker compose -f docker-compose.yml -f docker-compose.deploy.yml up -d --build
