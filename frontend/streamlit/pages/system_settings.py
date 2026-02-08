@@ -3,7 +3,7 @@ from pathlib import Path
 import requests
 import streamlit as st
 
-from config.settings import API_BASE, EDUAI_MODE
+from config.settings import API_BASE, LAKEFLOW_MODE
 from state.session import require_login
 
 
@@ -113,7 +113,7 @@ def render():
     selected_path: str | None = None
 
     # ---------- DEV MODE ----------
-    if EDUAI_MODE == "DEV":
+    if LAKEFLOW_MODE == "DEV":
         st.info("DEV mode: cho phép nhập Data Lake path bất kỳ")
 
         selected_path = st.text_input(

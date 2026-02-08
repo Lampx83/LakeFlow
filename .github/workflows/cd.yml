@@ -1,0 +1,58 @@
+# CD: Build & push Docker images lên GitHub Container Registry (khi release)
+# Repo public: dùng GITHUB_TOKEN (tự sinh), không cần secret thêm
+
+name: CD
+
+on:
+  release:
+    types: [published]
+  # Tùy chọn: push lên main cũng build & push image latest
+  # push:
+  #   branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-and-push:
+    name: Build & push images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set version from release tag
+        id: meta
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/datalake-backend:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/datalake-backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend/streamlit
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/datalake-frontend:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/datalake-frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

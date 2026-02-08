@@ -1,284 +1,87 @@
-# EDUAI – AI Data & Semantic Search Platform
+# LakeFlow Backend
 
-## 1. Giới thiệu
-
-**EDUAI** là nền tảng xử lý dữ liệu và tìm kiếm ngữ nghĩa (Semantic Search) phục vụ các hệ thống AI/LLM nội bộ.
-Hệ thống được thiết kế theo kiến trúc **Data Lake nhiều tầng**, hỗ trợ:
-
-* Ingest dữ liệu thô (PDF, Excel, …)
-* Phân tích – chuẩn hoá dữ liệu
-* Sinh embedding bằng mô hình ngôn ngữ
-* Lưu trữ vector trên Qdrant
-* Cung cấp API Semantic Search qua FastAPI
-
-Mục tiêu chính:
-
-* Chuẩn hoá pipeline dữ liệu AI
-* Dễ mở rộng, dễ audit, dễ bảo trì
-* Phù hợp môi trường học thuật & enterprise nội bộ
+FastAPI backend and data pipelines for [LakeFlow](https://github.com/Lampx83/EDUAI): ingest, staging, processing, embedding, and semantic search.
 
 ---
 
-## 2. Kiến trúc tổng thể
+## Overview
 
-### 2.1 Data Lake Zones
-
-```
-EDUAI_DATA_BASE_PATH/
-├── 000_inbox/        # File đầu vào (theo domain)
-├── 100_raw/          # File raw đã hash + deduplicate
-├── 200_staging/      # Phân tích & validation
-├── 300_processed/    # Dữ liệu AI-ready
-├── 400_embeddings/   # Vector embedding
-├── 500_catalog/      # SQLite metadata catalog
-```
-
-### 2.2 Pipeline tổng quát
-
-```
-Inbox
-  ↓
-Ingestion (hash, dedup, catalog)
-  ↓
-Staging (file analysis, validation)
-  ↓
-Processed (clean text, chunks, tables)
-  ↓
-Embeddings (Sentence-Transformers)
-  ↓
-Vector Store (Qdrant)
-  ↓
-Semantic Search API
-```
+- **API:** FastAPI app (`lakeflow.main:app`) — auth, search, embed, pipeline trigger, Qdrant proxy, system.
+- **Data Lake:** Layered zones under `LAKEFLOW_DATA_BASE_PATH`: `000_inbox` → `100_raw` → `200_staging` → `300_processed` → `400_embeddings` → `500_catalog`.
+- **Vector store:** Qdrant (default collection `lakeflow_chunks`). Embeddings via sentence-transformers (e.g. `all-MiniLM-L6-v2`).
 
 ---
 
-## 3. Yêu cầu hệ thống
+## Requirements
 
-### 3.1 Phần mềm
-
-* Python **>= 3.10**
-* Docker (khuyến nghị)
-* Qdrant **>= 1.8**
-* OS: Linux / macOS (NAS được hỗ trợ)
-
-### 3.2 Thư viện chính
-
-* FastAPI, Uvicorn
-* Pandas, NumPy
-* PyPDF2, pdfplumber
-* sentence-transformers
-* Qdrant Client
-* SQLite
-
-Danh sách đầy đủ xem tại: `requirements.txt`
+- Python ≥ 3.10
+- Qdrant (e.g. Docker: `docker compose up -d qdrant`)
+- See `requirements.txt` for Python dependencies
 
 ---
 
-## 4. Cấu hình môi trường
+## Install & run
 
-### 4.1 File `.env`
-
-Tạo file `.env` tại thư mục gốc dự án:
-
-```env
-EDUAI_DATA_BASE_PATH=/absolute/path/to/eduai_data
-SECRET_KEY=eduai-secret-key
-```
-
-> **Lưu ý:**
->
-> * `EDUAI_DATA_BASE_PATH` phải là đường dẫn tuyệt đối
-> * Thư mục sẽ được tạo tự động nếu chưa tồn tại
-
----
-
-## 5. Cài đặt & khởi chạy
-
-### 5.1 Chạy bằng Docker (khuyến nghị)
+**With Docker (from repo root):**
 
 ```bash
-docker compose build
-docker compose up
+docker compose up --build
+# API: http://localhost:8011
 ```
 
-API sẽ chạy tại:
-
-```
-http://localhost:8011
-```
-
-Health check:
-
-```
-GET /health
-```
-
----
-
-### 5.2 Chạy thủ công (dev mode)
+**Local dev:**
 
 ```bash
+cd backend
 python3 -m venv .venv
 source .venv/bin/activate
-pip install --upgrade pip setuptools
-python -m pip install -r requirements.txt
-python -m pip install -e .
-
-python -m uvicorn eduai.main:app --reload --port 8011
-
-```
-Chú ý cần chạy Qdrant (nếu sử dụng)
-```
-docker compose up qdrant
-```
----
-
-### 5.3 API & Tài liệu
-
-* **Swagger UI:** `http://localhost:8011/docs`
-* **ReDoc:** `http://localhost:8011/redoc`
-* **API Vector hóa chuỗi (Embed):** xem [docs/API_EMBED.md](docs/API_EMBED.md) — `POST /search/embed` để nhận vector embedding của một chuỗi.
-
----
-## 6. Hướng dẫn pipeline dữ liệu
-
-### 6.1 Bước 0 – Ingest Inbox → Raw
-
-```bash
-python -m eduai.scripts.step0_inbox
+pip install -r requirements.txt
+pip install -e .
+# .env in repo root with LAKEFLOW_DATA_BASE_PATH, QDRANT_HOST, etc.
+python -m uvicorn lakeflow.main:app --reload --port 8011
 ```
 
-Chức năng:
-
-* Hash SHA-256
-* Deduplicate
-* Copy atomic
-* Ghi metadata vào SQLite catalog
+- **Swagger:** http://localhost:8011/docs  
+- **ReDoc:** http://localhost:8011/redoc  
+- **Embed API:** [docs/API_EMBED.md](docs/API_EMBED.md) — `POST /search/embed`
 
 ---
 
-### 6.2 Bước 1 – Staging (PDF)
+## Pipeline steps (CLI)
 
-```bash
-python -m eduai.scripts.step1_raw
-```
+Run from repo root (or set `LAKEFLOW_DATA_BASE_PATH` and run from `backend`).
 
-Sinh:
+| Step | Command | Output |
+|------|---------|--------|
+| 0 – Inbox → Raw | `python -m lakeflow.scripts.step0_inbox` | Hash, dedup, catalog |
+| 1 – Staging | `python -m lakeflow.scripts.step1_raw` | `pdf_profile.json`, `validation.json` |
+| 2 – Processed | `python -m lakeflow.scripts.step2_staging` | `clean_text.txt`, `chunks.json`, `tables.json` |
+| 3 – Embeddings | `python src/lakeflow/scripts/step3_processed_files.py` | `embeddings.npy`, `chunks_meta.json` |
+| 4 – Qdrant | `python src/lakeflow/scripts/step3_processed_qdrant.py` | Points in Qdrant |
 
-* `pdf_profile.json`
-* `validation.json`
-
----
-
-### 6.3 Bước 2 – Processed (AI-ready)
-
-```bash
-python -m eduai.scripts.step2_staging
-```
-
-Sinh:
-
-* `clean_text.txt`
-* `sections.json`
-* `chunks.json`
-* `tables.json`
+Or use the **Streamlit UI** (Pipeline Runner) when `LAKEFLOW_MODE=DEV`.
 
 ---
 
-### 6.4 Bước 3 – Embeddings
+## Main APIs
 
-```bash
-python src/eduai/scripts/step3_processed_files.py
-```
-
-Sinh:
-
-* `embeddings.npy`
-* `chunks_meta.json`
-* `model.json`
-* `embeddings.jsonl` (debug)
+- **POST /auth/login** – Demo login (e.g. `admin` / `admin123`), returns JWT.
+- **POST /search/embed** – Body `{"text": "..."}` → `vector`, `embedding`, `dim`.
+- **POST /search/semantic** – Body `{"query": "...", "top_k": 5, "qdrant_url": "...", "collection_name": "..."}`.
+- **POST /search/qa** – RAG-style Q&A (semantic search + LLM). Optional.
+- **POST /pipeline/run** – Run a pipeline step (auth required).
+- **GET/POST /qdrant/** – Qdrant collections and points (proxy).
 
 ---
 
-### 6.5 Bước 4 – Ingest vào Qdrant
+## Design notes
 
-```bash
-python src/eduai/scripts/step3_processed_qdrant.py
-```
-
----
-
-## 7. Semantic Search API
-
-### 7.1 Đăng nhập (Demo)
-
-```
-POST /auth/login
-```
-
-```json
-{
-  "username": "admin",
-  "password": "admin123"
-}
-```
+- **Idempotent** pipelines; deterministic UUIDs for Qdrant.
+- **SQLite** without WAL (NAS-friendly).
+- **No full-file load** for large files; streaming where applicable.
 
 ---
 
-### 7.2 Semantic Search
+## License
 
-```
-POST /search/semantic
-```
-
-```json
-{
-  "query": "Kinh tế quốc dân",
-  "top_k": 5
-}
-```
-
-Response:
-
-* score
-* file_hash
-* chunk_id
-* section_id
-* text
-* token_estimate
-
----
-
-## 8. Lưu ý thiết kế quan trọng
-
-* **Idempotent pipeline**: chạy lại không gây trùng dữ liệu
-* **Deterministic UUID** cho Qdrant
-* **Không WAL SQLite** (tương thích NAS)
-* **Không load toàn bộ file lớn vào memory**
-* **Phân tách rõ zone & trách nhiệm**
-
----
-
-## 9. Định hướng mở rộng
-
-* OCR (Tesseract / PaddleOCR)
-* Chunking theo cấu trúc tài liệu
-* Metadata-aware search
-* RAG pipeline
-* User / Role / ACL
-* Multi-collection Qdrant
-* Audit & lineage tracking
-
----
-
-## 10. Bản quyền & sử dụng
-
-Dự án phục vụ **nghiên cứu – đào tạo – triển khai nội bộ**.
-Không khuyến nghị sử dụng trực tiếp cho môi trường public production khi chưa bổ sung:
-
-* Rate limit
-* Auth nâng cao
-* Hardening bảo mật
-
----
+Same as the root repository.

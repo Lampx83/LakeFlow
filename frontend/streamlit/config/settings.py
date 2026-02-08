@@ -4,20 +4,20 @@ from pathlib import Path
 
 def _resolve_api_base() -> str:
     base = os.getenv("API_BASE_URL", "http://localhost:8011")
-    # Khi chạy dev trên host, "eduai-backend" không resolve → dùng localhost
-    if "eduai-backend" in base:
+    # Khi chạy dev trên host, "lakeflow-backend" không resolve → dùng localhost
+    if "lakeflow-backend" in base:
         try:
-            socket.gethostbyname("eduai-backend")
+            socket.gethostbyname("lakeflow-backend")
         except socket.gaierror:
             base = "http://localhost:8011"
     return base
 
 API_BASE = _resolve_api_base()
-EDUAI_MODE = os.getenv("EDUAI_MODE", "DEV")
+LAKEFLOW_MODE = os.getenv("LAKEFLOW_MODE", "DEV")
 
-# Qdrant Service: mặc định khi không chọn (dev = localhost, docker = eduai-qdrant)
+# Qdrant Service: mặc định khi không chọn (dev = localhost, docker = lakeflow-qdrant)
 QDRANT_DEFAULT_DEV = "http://localhost:6333"
-QDRANT_DEFAULT_DOCKER = "http://eduai-qdrant:6333"
+QDRANT_DEFAULT_DOCKER = "http://lakeflow-qdrant:6333"
 
 
 def _parse_qdrant_services_env() -> list[tuple[str, str]]:
@@ -68,17 +68,17 @@ def normalize_qdrant_url(url: str | None) -> str | None:
 def qdrant_service_options():
     """
     Danh sách (label, value) cho dropdown Qdrant Service.
-    value=None = mặc định (backend env). Gồm mặc định + localhost + eduai-qdrant + các service khai báo thêm qua QDRANT_SERVICES.
+    value=None = mặc định (backend env). Gồm mặc định + localhost + lakeflow-qdrant + các service khai báo thêm qua QDRANT_SERVICES.
     """
     default_label = (
         f"Mặc định (localhost:6333)"
-        if EDUAI_MODE == "DEV"
-        else "Mặc định (eduai-qdrant:6333)"
+        if LAKEFLOW_MODE == "DEV"
+        else "Mặc định (lakeflow-qdrant:6333)"
     )
     base = [
         (default_label, None),
         ("http://localhost:6333", "http://localhost:6333"),
-        ("http://eduai-qdrant:6333", "http://eduai-qdrant:6333"),
+        ("http://lakeflow-qdrant:6333", "http://lakeflow-qdrant:6333"),
     ]
     extra = _parse_qdrant_services_env()
     return base + extra
@@ -88,7 +88,7 @@ def qdrant_service_options():
 # =========================
 DATA_ROOT = Path(
     os.getenv(
-        "EDUAI_DATA_BASE_PATH",
+        "LAKEFLOW_DATA_BASE_PATH",
         "/data",   # default cho Docker
     )
 ).expanduser().resolve()

@@ -1,281 +1,96 @@
-# EDUAI – Streamlit Frontend (Control & Test UI)
+# LakeFlow Streamlit UI
 
-## 1. Mục đích
-
-Đây là **Streamlit Control UI** phục vụ cho:
-
-- Test và debug Backend API
-- Vận hành pipeline dữ liệu (DEV / nội bộ)
-- Kiểm tra semantic search, ingestion, embedding
-- Duyệt Data Lake theo các zone (000 → 500)
-
-⚠️ **Không phải frontend sản phẩm**  
-⚠️ **Không dùng cho end-user hoặc production**
+Streamlit **control & test UI** for [LakeFlow](https://github.com/Lampx83/EDUAI): run pipelines, explore the data lake, and try semantic search.
 
 ---
 
-## 2. Kiến trúc tổng quan
+## Purpose
 
-```text
-[ Streamlit UI ]  →  [ FastAPI Backend ]  →  [ Qdrant Vector DB ]
-        8501                8011                   6333
-````
+- **Test & debug** the LakeFlow backend API
+- **Run pipeline steps** (when `LAKEFLOW_MODE=DEV`)
+- **Semantic search** and **Qdrant Explorer**
+- **Data Lake Explorer** — browse zones `000_inbox` … `500_catalog`
 
-Frontend **không xử lý nghiệp vụ**, chỉ đóng vai trò:
-
-* Gọi API
-* Hiển thị kết quả
-* Trigger pipeline (DEV)
+This UI is for **operators and developers**, not for end-users or production-facing use. It has no fine-grained permissions and shows tokens; use only in dev or trusted internal networks.
 
 ---
 
-## 3. Yêu cầu hệ thống
+## Requirements
 
-### 3.1. Bắt buộc
-
-* Docker
-* Docker Compose
-* Backend EDUAI đã cấu hình đầy đủ
-
-### 3.2. Các service liên quan
-
-Frontend **phụ thuộc** vào:
-
-* `eduai-backend`
-* `qdrant`
-
-Do đó **không chạy frontend độc lập**.
+- LakeFlow **backend** running (e.g. http://localhost:8011 or `lakeflow-backend:8011` in Docker)
+- Qdrant (e.g. `docker compose up -d qdrant` or shared Qdrant URL)
 
 ---
 
-## 4. Chạy frontend bằng Docker Compose (khuyến nghị)
+## Run with Docker (recommended)
 
-### 4.1. Cấu trúc liên quan
-
-```text
-project-root/
-├── docker-compose.yml
-├── .env
-├── backend/
-└── frontend/
-    └── streamlit/
-        ├── Dockerfile
-        ├── requirements.txt
-        ├── app.py
-        └── README.md
-```
-
----
-
-### 4.2. File `.env` (ví dụ)
-
-Đặt tại **project root**:
-
-```env
-# =========================
-# EDUAI ENV
-# =========================
-
-EDUAI_MODE=DEV
-
-# Backend API
-API_BASE_URL=http://eduai-backend:8011
-
-# Data path (trong container)
-EDUAI_DATA_BASE_PATH=/data
-
-# Qdrant
-QDRANT_HOST=eduai-qdrant
-QDRANT_PORT=6333
-```
-
----
-
-### 4.3. Khởi động toàn bộ hệ thống
-
-Tại **project root**:
+From the **repo root**:
 
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
-Hoặc chạy nền:
+- **Streamlit:** http://localhost:8012 (or the port mapped in `docker-compose.yml`)
+- **Login:** `admin` / `admin123` (demo)
 
-```bash
-docker-compose up -d --build
+Ensure `.env` in repo root has at least `API_BASE_URL`, `LAKEFLOW_DATA_BASE_PATH`, and (if needed) `QDRANT_HOST` / `QDRANT_PORT`. For Docker, `API_BASE_URL=http://lakeflow-backend:8011` and `LAKEFLOW_DATA_BASE_PATH=/data` are typical.
+
+---
+
+## Run locally (dev)
+
+1. **Backend** and **Qdrant** must be running (see [backend/README.md](../backend/README.md)).
+2. From repo root, create/use `.env` with `API_BASE_URL=http://localhost:8011`, `LAKEFLOW_DATA_BASE_PATH=/path/to/your/data/lake`, and optional `QDRANT_HOST=localhost`.
+3. Start Streamlit:
+
+   ```bash
+   cd frontend/streamlit
+   export $(grep -v '^#' ../../.env | xargs)
+   streamlit run app.py
+   ```
+
+   Or from repo root: `python frontend/streamlit/dev_with_reload.py` (with `.env` loaded) for auto-reload on code change.
+
+- Default URL: http://localhost:8501 (unless overridden in config).
+
+---
+
+## Main features
+
+| Feature | Description |
+|--------|-------------|
+| **Login** | Demo auth; JWT used for API calls |
+| **Semantic Search** | Query text → results from Qdrant (choose or type Qdrant URL) |
+| **Qdrant Inspector** | List collections, browse points |
+| **Pipeline Runner** | Run pipeline steps (only if `LAKEFLOW_MODE=DEV`) |
+| **Data Lake Explorer** | Browse files in each zone; preview JSON/TXT |
+
+---
+
+## Configuration
+
+- **Backend URL:** `API_BASE_URL` (e.g. `http://lakeflow-backend:8011` in Docker, `http://localhost:8011` locally).
+- **Data lake path:** `LAKEFLOW_DATA_BASE_PATH` (e.g. `/data` in Docker).
+- **Qdrant:** Defaults from backend; you can pick or type a Qdrant URL in the UI for search and inspector.
+- **Pipeline Runner:** Shown only when `LAKEFLOW_MODE=DEV`. Do not enable in production.
+
+---
+
+## Project layout
+
+```
+frontend/streamlit/
+├── app.py              # Entrypoint
+├── config/settings.py  # API base, LAKEFLOW_MODE, Qdrant options
+├── pages/              # Semantic Search, QA, Pipeline Runner, Data Lake Explorer, etc.
+├── services/           # API client, pipeline, Qdrant
+├── state/              # Session, token storage
+├── requirements.txt
+└── README.md
 ```
 
 ---
 
-### 4.4. Truy cập frontend
+## License
 
-Mở trình duyệt:
-
-```
-http://localhost:8501
-```
-
-Giao diện chính:
-
-* Login
-* Semantic Search
-* Pipeline Runner (DEV)
-* Data Lake Explorer
-
----
-
-## 5. Chạy frontend ở chế độ DEV (không khuyến nghị)
-
-⚠️ Chỉ dùng khi debug UI, **không dùng cho pipeline thật**
-
-### 5.0. Cấu hình folder NAS khi chạy dev
-
-Cấu hình trong **file `.env`** tại **project root** (thư mục `EDUAI/`).
-
-Khi chạy dev (backend + frontend trên máy, không dùng Docker):
-
-1. Mở **`.env`** (nếu chưa có thì copy từ `.env.example`).
-2. **Comment** phần “Chạy Docker” (3 dòng `EDUAI_DATA_BASE_PATH`, `QDRANT_HOST`, `API_BASE_URL` với giá trị docker).
-3. **Bỏ comment** phần “Chạy DEV” và đặt **`EDUAI_DATA_BASE_PATH`** = đường dẫn folder NAS của bạn:
-   - Mac + Synology Drive: thường là `/Users/<user>/Library/CloudStorage/SynologyDrive-<tên share>` (ví dụ: `SynologyDrive-education`).
-   - Hoặc path tới thư mục local chứa Data Lake (có các folder `000_inbox`, `100_raw`, …).
-
-Ví dụ trong `.env` khi chạy dev:
-
-```env
-# Chạy DEV – folder NAS (Synology Drive hoặc path local)
-EDUAI_DATA_BASE_PATH=/Users/mac/Library/CloudStorage/SynologyDrive-education
-QDRANT_HOST=localhost
-API_BASE_URL=http://localhost:8011
-```
-
-Backend và frontend đều đọc **`EDUAI_DATA_BASE_PATH`** từ `.env` (sau khi bạn `export` hoặc load env trước khi chạy). Data Lake Explorer trong UI sẽ dùng đúng folder NAS này.
-
-### 5.1. Cài dependency
-
-```bash
-cd frontend/streamlit
-pip install -r requirements.txt
-```
-
-### 5.2. Chạy Streamlit
-
-**Bắt buộc chạy từ thư mục `frontend/streamlit`** (để Streamlit nhận config và watch đúng file):
-
-```bash
-cd frontend/streamlit
-export $(grep -v '^#' ../../.env | xargs)
-streamlit run app.py
-```
-
-Hoặc dùng script (từ project root):
-
-```bash
-./frontend/streamlit/run_dev.sh
-```
-
-### 5.3. Tự reload khi đổi code (dev)
-
-**Cách 1 – Dùng script Python (khuyến nghị, chắc chắn reload):**
-
-Từ **project root** (EDUAI):
-
-```bash
-cd /path/to/EDUAI
-export $(grep -v '^#' .env | xargs)
-python frontend/streamlit/dev_with_reload.py
-```
-
-Script này **restart Streamlit** mỗi khi bạn lưu file `.py` hoặc `.toml` trong `frontend/streamlit`. Không phụ thuộc config Streamlit.
-
-**Cách 2 – Config Streamlit (runOnSave):**
-
-Streamlit đọc config từ **thư mục bạn chạy lệnh** (CWD):
-
-- Đã thêm **project root** config: `EDUAI/.streamlit/config.toml` (runOnSave + poll). Khi chạy từ project root, dùng:
-  ```bash
-  cd /path/to/EDUAI
-  streamlit run frontend/streamlit/app.py
-  ```
-- Hoặc chạy từ **frontend/streamlit** (config trong `frontend/streamlit/.streamlit/config.toml`):
-  ```bash
-  cd frontend/streamlit
-  streamlit run app.py --server.runOnSave true --server.fileWatcherType poll
-  ```
-
-Nếu vẫn không reload: dùng **Cách 1** (`dev_with_reload.py`).
-
-⚠️ Lưu ý:
-
-* Backend **phải chạy trước**
-* Không mount được `/data` như Docker
-* Một số chức năng Data Lake sẽ không hoạt động
-
----
-
-## 6. Chức năng chính của UI
-
-### 6.1. Login
-
-* Username: `admin`
-* Password: `admin123`
-* Nhận JWT token để gọi API
-
----
-
-### 6.2. Semantic Search
-
-* Nhập query ngôn ngữ tự nhiên
-* Chọn Qdrant từ dropdown **hoặc gõ địa chỉ Qdrant tùy chỉnh** (vd. `http://host:6333`)
-* Truy vấn Qdrant, hiển thị chunk, score, metadata
-
----
-
-### 6.3. Pipeline Runner (DEV ONLY)
-
-Chỉ hiển thị khi:
-
-```env
-EDUAI_MODE=DEV
-```
-
-Bao gồm:
-
-* 000 – Inbox ingestion
-* 200 – File staging
-* 300 – Processing
-* 400 – Embedding
-* 401 – Qdrant indexing
-
-⚠️ **Tuyệt đối không bật ở production**
-
----
-
-### 6.4. Data Lake Explorer
-
-Duyệt trực tiếp các zone:
-
-* `000_inbox`
-* `100_raw`
-* `200_staging`
-* `300_processed`
-* `400_embeddings`
-* `500_catalog`
-
-Hỗ trợ preview:
-
-* `.json`
-* `.txt`
-
----
-
-## 7. Lưu ý bảo mật & vận hành
-
-* UI **không có phân quyền**
-* Token hiển thị rõ trên màn hình
-* Chỉ dùng trong:
-
-  * Môi trường DEV
-  * Mạng nội bộ
-  * Người vận hành kỹ thuật
-
+Same as the root repository.

@@ -32,7 +32,7 @@ def render():
         range(len(qdrant_labels)),
         format_func=lambda i: qdrant_labels[i],
         key="semantic_qdrant_svc",
-        help="Chọn Qdrant để tìm kiếm. Mặc định: localhost (dev) hoặc eduai-qdrant (docker).",
+        help="Chọn Qdrant để tìm kiếm. Mặc định: localhost (dev) hoặc lakeflow-qdrant (docker).",
     )
     qdrant_custom = st.text_input(
         "Hoặc nhập địa chỉ Qdrant tùy chỉnh",
@@ -44,9 +44,9 @@ def render():
 
     try:
         collections_resp = list_collections(token, qdrant_url=qdrant_url)
-        collections = [c["name"] for c in collections_resp] if collections_resp else ["eduai_chunks"]
+        collections = [c["name"] for c in collections_resp] if collections_resp else ["lakeflow_chunks"]
     except Exception:
-        collections = ["eduai_chunks"]
+        collections = ["lakeflow_chunks"]
 
     col1, col2, col3 = st.columns(3)
 

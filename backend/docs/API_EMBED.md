@@ -97,7 +97,7 @@ console.log("Dim:", data.dim);
 
 ## Lưu ý
 
-- **Model:** Mặc định dùng `sentence-transformers/all-MiniLM-L6-v2` (384 chiều). Cùng model với Semantic Search và pipeline embedding của EDUAI.
+- **Model:** Mặc định dùng `sentence-transformers/all-MiniLM-L6-v2` (384 chiều). Cùng model với Semantic Search và pipeline embedding của LakeFlow.
 - **Chuẩn hóa:** Vector trả về đã được normalize (L2), dùng trực tiếp để tính cosine similarity với các vector trong Qdrant.
 - **Xác thực:** Hiện endpoint không bắt buộc Bearer token. Nếu backend bật auth toàn cục thì cần gửi header `Authorization: Bearer <token>`.
 - **Giới hạn:** Không giới hạn độ dài chuỗi; model cắt theo giới hạn token của nó (tối đa 512 token với MiniLM).
@@ -111,9 +111,9 @@ API này có thể dùng làm **embedding service** cho hệ thống khác (ví 
 - **Request:** `POST`, body `{ "text": "chuỗi cần embed" }`.
 - **Response:** JSON có trường `vector` (và `embedding` – alias của `vector`) là mảng số thực.
 
-Ví dụ cấu hình ở hệ thống gọi tới EDUAI:
+Ví dụ cấu hình ở hệ thống gọi tới LakeFlow:
 
-- Biến môi trường: `REGULATIONS_EMBEDDING_URL=http://localhost:8011/search/embed` (DEV) hoặc URL backend EDUAI khi deploy.
+- Biến môi trường: `REGULATIONS_EMBEDDING_URL=http://localhost:8011/search/embed` (DEV) hoặc URL backend LakeFlow khi deploy.
 - Gửi: `POST` với `Content-Type: application/json`, body `{ "text": "<keyword>" }`.
 - Đọc vector từ response: `response.embedding` hoặc `response.vector` (cùng nội dung).
 

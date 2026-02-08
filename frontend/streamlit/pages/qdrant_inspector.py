@@ -43,7 +43,7 @@ def render():
         range(len(qdrant_labels)),
         format_func=lambda i: qdrant_labels[i],
         key="inspector_qdrant_svc",
-        help="Chọn Qdrant để inspect. Mặc định: localhost (dev) hoặc eduai-qdrant (docker).",
+        help="Chọn Qdrant để inspect. Mặc định: localhost (dev) hoặc lakeflow-qdrant (docker).",
     )
     qdrant_custom = st.text_input(
         "Hoặc nhập địa chỉ Qdrant tùy chỉnh",

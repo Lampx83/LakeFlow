@@ -2,7 +2,7 @@
 """
 Chạy Streamlit và tự restart khi có thay đổi file .py trong frontend/streamlit.
 Cách dùng (từ project root):
-  cd /path/to/EDUAI
+  cd /path/to/LakeFlow
   python frontend/streamlit/dev_with_reload.py
 
 Hoặc từ frontend/streamlit:

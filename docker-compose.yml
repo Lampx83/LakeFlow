@@ -5,7 +5,7 @@ services:
 
   qdrant:
     image: qdrant/qdrant:v1.16.2
-    container_name: eduai-qdrant
+    container_name: lakeflow-qdrant
     ports:
       - "6333:6333"
     volumes:
@@ -15,10 +15,10 @@ services:
   # =========================
   # Backend API + Pipelines
   # =========================
-  eduai-backend:
+  lakeflow-backend:
     build:
       context: ./backend
-    container_name: eduai-backend
+    container_name: lakeflow-backend
     depends_on:
       - qdrant
     ports:
@@ -26,41 +26,41 @@ services:
     env_file:
       - .env
     environment:
-      EDUAI_DATA_BASE_PATH: /data
-      # Mặc định Qdrant khi chạy Docker (không chọn gì = eduai-qdrant:6333)
-      QDRANT_HOST: eduai-qdrant
+      LAKEFLOW_DATA_BASE_PATH: /data
+      # Mặc định Qdrant khi chạy Docker (không chọn gì = lakeflow-qdrant:6333)
+      QDRANT_HOST: lakeflow-qdrant
       QDRANT_PORT: "6333"
     volumes:
-      - eduai_data:/data
+      - lakeflow_data:/data
       # Mount source for hot-reload when developing
       - ./backend/src:/app/src
-    command: uvicorn eduai.main:app --host 0.0.0.0 --port 8011 --reload
+    command: uvicorn lakeflow.main:app --host 0.0.0.0 --port 8011 --reload
     restart: unless-stopped
 
 
   # =========================
   # Streamlit Test Frontend
   # =========================
-  eduai-frontend:
+  lakeflow-frontend:
     env_file:
       - .env
     build:
       context: ./frontend/streamlit
-    container_name: eduai-frontend
+    container_name: lakeflow-frontend
     depends_on:
-      - eduai-backend
+      - lakeflow-backend
     ports:
       - "8012:8012"
     volumes:
       - ./backend:/app/backend
-      - eduai_data:/data
+      - lakeflow_data:/data
     restart: unless-stopped
 
 # =========================
 # Volumes
 # =========================
 volumes:
-  eduai_data:
+  lakeflow_data:
     driver: local
     driver_opts:
       type: none

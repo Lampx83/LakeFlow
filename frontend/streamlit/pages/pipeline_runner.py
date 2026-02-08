@@ -6,7 +6,7 @@ from services.pipeline_service import (
     list_qdrant_collections,
     run_pipeline_step,
 )
-from config.settings import EDUAI_MODE, qdrant_service_options, normalize_qdrant_url
+from config.settings import LAKEFLOW_MODE, qdrant_service_options, normalize_qdrant_url
 from state.session import require_login
 
 STEPS = [
@@ -84,7 +84,7 @@ def render():
     if not require_login():
         return
 
-    if EDUAI_MODE != "DEV":
+    if LAKEFLOW_MODE != "DEV":
         st.info("Pipeline Runner chỉ khả dụng ở DEV mode")
         return
 
@@ -123,7 +123,7 @@ def render():
             collection_name = None
             pipeline_qdrant_url = None  # dùng khi step == "step4"
             if step == "step4":
-                st.caption("**Qdrant Service** — chọn Qdrant để insert embeddings vào (mặc định: localhost khi dev, eduai-qdrant khi docker).")
+                st.caption("**Qdrant Service** — chọn Qdrant để insert embeddings vào (mặc định: localhost khi dev, lakeflow-qdrant khi docker).")
                 qdrant_opts = qdrant_service_options()
                 qdrant_labels = [t[0] for t in qdrant_opts]
                 qdrant_values = [t[1] for t in qdrant_opts]
@@ -132,7 +132,7 @@ def render():
                     range(len(qdrant_labels)),
                     format_func=lambda i: qdrant_labels[i],
                     key="pipeline_qdrant_svc",
-                    help="Chọn Qdrant để insert. Mặc định: localhost (dev) hoặc eduai-qdrant (docker).",
+                    help="Chọn Qdrant để insert. Mặc định: localhost (dev) hoặc lakeflow-qdrant (docker).",
                 )
                 pipeline_qdrant_custom = st.text_input(
                     "Hoặc nhập địa chỉ Qdrant tùy chỉnh",
@@ -146,9 +146,9 @@ def render():
                     else qdrant_values[qdrant_idx]
                 )
 
-                st.caption("**Collection Qdrant** — chọn có sẵn hoặc nhập tên mới (để trống = dùng mặc định `eduai_chunks`).")
+                st.caption("**Collection Qdrant** — chọn có sẵn hoặc nhập tên mới (để trống = dùng mặc định `lakeflow_chunks`).")
                 existing = list_qdrant_collections(token=token)
-                opts = ["(Mặc định: eduai_chunks)", "(Nhập tên mới)"] + sorted(existing or [])
+                opts = ["(Mặc định: lakeflow_chunks)", "(Nhập tên mới)"] + sorted(existing or [])
                 col_choice = st.selectbox(
                     "Collection",
                     options=opts,
@@ -161,7 +161,7 @@ def render():
                         key="pipeline_qdrant_collection_new",
                         placeholder="vd: my_collection",
                     )
-                elif col_choice and col_choice != "(Mặc định: eduai_chunks)":
+                elif col_choice and col_choice != "(Mặc định: lakeflow_chunks)":
                     collection_name = col_choice
 
             if st.button(f"Chạy {label}", key=f"run_{step}"):

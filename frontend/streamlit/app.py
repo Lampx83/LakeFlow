@@ -1,7 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-from config.settings import EDUAI_MODE
+from config.settings import LAKEFLOW_MODE
 from state.session import init_session, is_logged_in
 from state.navigation import init_navigation, set_page, get_page
 from state.token_store import clear_token
@@ -22,7 +22,7 @@ from pages import (
 # PAGE CONFIG
 # =====================================================
 st.set_page_config(
-    page_title="EDUAI – Backend Control & Test UI",
+    page_title="LakeFlow – Backend Control & Test UI",
     page_icon="📚",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -43,7 +43,7 @@ if is_logged_in() and "page" not in st.session_state:
 # SIDEBAR
 # =====================================================
 with st.sidebar:
-    st.markdown("## 📚 EDUAI Control")
+    st.markdown("## 📚 LakeFlow Control")
     st.divider()
 
     # ---------- AUTH STATUS ----------
@@ -97,7 +97,7 @@ else:
     st.error(f"Unknown page: {page}")
 
 # Dev: khi server restart (dev_with_reload), tự refresh trang khi thấy server chạy lại
-if EDUAI_MODE == "DEV":
+if LAKEFLOW_MODE == "DEV":
     _auto_reload_js = """
     <script>
     (function() {

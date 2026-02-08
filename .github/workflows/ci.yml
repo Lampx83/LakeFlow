@@ -1,0 +1,47 @@
+# CI: Lint + Docker build (mỗi push / PR)
+# Repo public: không dùng secret, chỉ kiểm tra code & build image
+
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint:
+    name: Lint (Ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Lint (Ruff)
+        run: ruff check backend/src frontend/streamlit
+        # Bỏ continue-on-error khi đã fix hết lint
+
+  build-backend:
+    name: Build Backend Docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -t lakeflow-backend:ci ./backend
+
+  build-frontend:
+    name: Build Frontend Docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build frontend image
+        run: docker build -t lakeflow-frontend:ci ./frontend/streamlit

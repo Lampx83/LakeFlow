@@ -1,0 +1,25 @@
+# Ruff config cho CI & dev (backend + frontend)
+# Chạy: ruff check . hoặc ruff check backend/src frontend/streamlit
+
+target-version = "py310"
+line-length = 100
+
+exclude = [
+  ".git",
+  ".venv",
+  "venv",
+  "__pycache__",
+  ".ruff_cache",
+  "backend/.venv",
+  "frontend/.venv",
+]
+
+[lint]
+select = ["E", "F", "I", "N", "W"]
+ignore = [
+  "E501",   # line too long (để formatter hoặc black lo)
+  "ANN",    # type hints (bật khi đã chuẩn hóa type)
+]
+
+[lint.isort]
+known-first-party = ["lakeflow"]

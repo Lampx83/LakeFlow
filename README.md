@@ -1,230 +1,142 @@
-# Project Overview
+# LakeFlow
 
-Hệ thống được thiết kế để chạy **toàn bộ bằng Docker**, đảm bảo tính nhất quán môi trường, dễ triển khai và dễ mở rộng. Người dùng **không cần cài đặt trực tiếp Python hay các thư viện phụ thuộc** trên máy host.
+**Data Lake pipelines for Vector DB & AI.** Ingest raw documents, run staged pipelines, and produce embeddings + semantic search—ready for RAG, LLM, and analytics.
+
+[![CI](https://github.com/Lampx83/EDUAI/actions/workflows/ci.yml/badge.svg)](https://github.com/Lampx83/EDUAI/actions/workflows/ci.yml)
 
 ---
 
-## Yêu cầu hệ thống
+## What is LakeFlow?
 
-- Docker >= 20.x  
-- Docker Compose >= 2.x  
+LakeFlow is an open-source platform that turns your **Data Lake** into a structured pipeline:
 
-Kiểm tra:
+- **Ingest** raw files (PDF, Excel, etc.) with hash, dedup, and catalog
+- **Stage** and **process** into clean text, chunks, and tables
+- **Embed** with sentence-transformers and store vectors in **Qdrant**
+- Expose **Semantic Search API** and **embedding endpoint** for RAG, LLM, and downstream apps
+
+All components run via **Docker** by default—no need to install Python or heavy dependencies on the host.
+
+---
+
+## Features
+
+- **Layered Data Lake** – Zones: `000_inbox` → `100_raw` → `200_staging` → `300_processed` → `400_embeddings` → `500_catalog`
+- **Idempotent pipelines** – Re-run safely; deterministic UUIDs for Qdrant
+- **Semantic search** – Query in natural language; results by cosine similarity
+- **Embedding API** – `POST /search/embed` for text→vector (compatible with external RAG/LLM services)
+- **Streamlit control UI** – Run pipelines, explore data lake, test search (dev/internal use)
+- **Multi–Qdrant support** – Choose or type a Qdrant URL in the UI
+- **NAS-friendly** – SQLite without WAL; works on Synology/NFS
+
+---
+
+## Quick start (Docker)
+
+**Requirements:** Docker ≥ 20.x, Docker Compose ≥ 2.x
+
 ```bash
-docker --version
-docker compose version
-````
-
----
-
-## Cấu trúc triển khai (tổng quan)
-
-```
-.
-├── Dockerfile
-├── docker-compose.yml
-├── requirements.txt
-├── env.example
-├── ...
-```
-
----
-
-## Thiết lập môi trường
-
-### 1. Tạo file biến môi trường
-
-Sao chép file mẫu:
-
-```bash
+git clone https://github.com/Lampx83/EDUAI.git LakeFlow
+cd LakeFlow
 cp .env.example .env
-```
-
-Chỉnh sửa `.env` theo cấu hình mong muốn (port, database, API key, … nếu có).
-
----
-
-## Chạy DEV (frontend + backend trên máy, không Docker)
-
-Khi phát triển trên máy (backend + Streamlit UI chạy trực tiếp, không qua Docker):
-
-### 1. Cấu hình `.env` (tại thư mục gốc project)
-
-- Dùng phần **“Chạy DEV”** trong `.env`: bỏ comment `EDUAI_MODE`, `EDUAI_DATA_BASE_PATH`, `QDRANT_HOST`, `API_BASE_URL`.
-- Đặt `EDUAI_DATA_BASE_PATH` = đường dẫn folder NAS / Data Lake (ví dụ Synology Drive: `/Users/<user>/Library/CloudStorage/SynologyDrive-<tên>`).
-- Bên trong folder đó phải có các zone: `000_inbox`, `100_raw`, `200_staging`, `300_processed`, `400_embeddings`, `500_catalog`.
-
-Ví dụ:
-
-```env
-EDUAI_MODE=DEV
-EDUAI_DATA_BASE_PATH=/Users/mac/Library/CloudStorage/SynologyDrive-research
-QDRANT_HOST=localhost
-API_BASE_URL=http://localhost:8011
-```
-
-### 2. (Tuỳ chọn) Chạy Qdrant
-
-Nếu dùng Semantic Search / Qdrant:
-
-```bash
-docker compose up -d qdrant
-```
-
-### 3. Chạy Backend
-
-Từ **thư mục gốc project** (EDUAI):
-
-```bash
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-pip install -e .
-
-# Load .env từ project root (backend đọc .env khi import)
-python -m uvicorn eduai.main:app --reload --port 8011
-```
-
-Backend chạy tại: **http://localhost:8011**
-
-### 4. Chạy Frontend (Streamlit)
-
-Mở **terminal mới**, từ **thư mục gốc project**:
-
-```bash
-# Load biến từ .env rồi chạy Streamlit (có auto-reload khi đổi code)
-export $(grep -v '^#' .env | xargs)
-python frontend/streamlit/dev_with_reload.py
-```
-
-Hoặc chạy Streamlit trực tiếp:
-
-```bash
-cd frontend/streamlit
-export $(grep -v '^#' ../../.env | xargs)
-streamlit run app.py
-```
-
-Frontend chạy tại: **http://localhost:8501**
-
-### 5. Thứ tự và kiểm tra
-
-1. **Chạy Backend trước**, sau đó mới chạy Frontend.
-2. Đăng nhập UI: `admin` / `admin123`.
-3. Pipeline Runner chỉ hiện khi `EDUAI_MODE=DEV`.
-
----
-
-## Chạy hệ thống bằng Docker
-
-### 2. Build và khởi động toàn bộ hệ thống
-
-```bash
+# Edit .env: set LAKEFLOW_DATA_BASE_PATH to a directory that will hold the data lake (or leave /data for Docker volume)
 docker compose up --build
 ```
 
-Hoặc chạy ở chế độ nền:
+- **Backend API:** http://localhost:8011  
+- **API docs:** http://localhost:8011/docs  
+- **Streamlit UI:** http://localhost:8012 (login: `admin` / `admin123`)
 
-```bash
-docker compose up -d --build
-```
-
-Docker sẽ:
-
-* Build image từ `Dockerfile`
-* Cài đặt dependencies từ `requirements.txt`
-* Khởi động toàn bộ service được định nghĩa trong `docker-compose.yml`
+Data lake root is the `lakeflow_data` volume (or path you set). Create zones manually if needed: `000_inbox`, `100_raw`, `200_staging`, `300_processed`, `400_embeddings`, `500_catalog`.
 
 ---
 
-## Dừng hệ thống
+## Project structure
 
-```bash
-docker compose down
 ```
-
-Dừng và xóa toàn bộ container, network (không xóa image).
-
----
-
-## Xem log hệ thống
-
-```bash
-docker compose logs -f
-```
-
-Hoặc theo từng service:
-
-```bash
-docker compose logs -f <service_name>
+LakeFlow/
+├── backend/           # FastAPI app + pipeline scripts (Python)
+│   ├── src/lakeflow/  # Main package
+│   ├── docs/          # API docs (e.g. API_EMBED.md)
+│   └── README.md
+├── frontend/
+│   └── streamlit/     # Streamlit control UI
+│       └── README.md
+├── docker-compose.yml
+├── docker-compose.prod.yml
+├── .env.example
+└── README.md
 ```
 
 ---
 
-## Rebuild khi có thay đổi code
+## Configuration
 
-```bash
-docker compose down
-docker compose up --build
-```
+Copy `.env.example` to `.env` and adjust:
 
----
+| Variable | Description |
+|----------|-------------|
+| `LAKEFLOW_DATA_BASE_PATH` | Root path for the data lake (e.g. `/data` in Docker, or a host path) |
+| `LAKEFLOW_MODE` | `DEV` = show Pipeline Runner in UI; omit or other = hide |
+| `QDRANT_HOST` | Qdrant host (e.g. `lakeflow-qdrant` in Docker, `localhost` when running Qdrant alone) |
+| `API_BASE_URL` | Backend URL (e.g. `http://lakeflow-backend:8011` in Docker, `http://localhost:8011` for local dev) |
 
-## Ghi chú
-
-* Không chạy trực tiếp ứng dụng bằng `python main.py` trên host
-* Mọi thao tác phát triển, test, deploy đều thực hiện **thông qua Docker**
-* Khuyến nghị dùng Docker ngay cả trong môi trường development
+See `.env.example` for a full template.
 
 ---
 
-## Triển khai (Deployment)
+## Development (without Docker)
 
-Hệ thống có thể triển khai trực tiếp trên:
+1. **Backend** (from repo root):
+   ```bash
+   cd backend
+   python3 -m venv .venv
+   source .venv/bin/activate   # Windows: .venv\Scripts\activate
+   pip install -r requirements.txt && pip install -e .
+   # Ensure .env is in repo root with LAKEFLOW_DATA_BASE_PATH, QDRANT_HOST, API_BASE_URL
+   python -m uvicorn lakeflow.main:app --reload --port 8011
+   ```
+2. **Qdrant** (if needed): `docker compose up -d qdrant`
+3. **Frontend**: From repo root, load `.env` then run `python frontend/streamlit/dev_with_reload.py` or `streamlit run frontend/streamlit/app.py`.
 
-* VPS
-* Server vật lý
-* Cloud (AWS / GCP / Azure)
+Pipeline Runner in the UI is only shown when `LAKEFLOW_MODE=DEV`.
 
-### Deploy tự động khi push lên `main` (GitHub Actions)
+---
 
-Khi push code lên branch `main`, workflow `.github/workflows/deploy.yml` sẽ SSH vào server và chạy `git pull` + `docker compose up -d --build` (dùng `docker-compose.prod.yml` để chạy production).
+## API overview
 
-**Bước 1 – Trên server (chỉ làm một lần):**
+- **Health:** `GET /health`
+- **Auth (demo):** `POST /auth/login` (e.g. `admin` / `admin123`)
+- **Embed:** `POST /search/embed` — body `{"text": "..."}` → returns `vector` / `embedding` and `dim`
+- **Semantic search:** `POST /search/semantic` — body `{"query": "...", "top_k": 5}` (optional `qdrant_url`, `collection_name`)
 
-1. Cài Docker và Docker Compose.
-2. Clone repo (ví dụ `$HOME/EDUAI`):  
-   `git clone https://github.com/<org>/EDUAI.git`
-3. Tạo file `.env` trong thư mục repo (copy từ `.env.example` và điền giá trị).
-4. (Tùy chọn) Cấu hình SSH: user deploy có quyền pull (hoặc dùng SSH key cho GitHub Actions).
+See [backend/README.md](backend/README.md) and [backend/docs/API_EMBED.md](backend/docs/API_EMBED.md) for details.
 
-**Bước 2 – Trong GitHub repo:**
+---
 
-Vào **Settings → Secrets and variables → Actions**, thêm Secrets:
+## CI / CD
 
-| Secret | Mô tả |
-|--------|--------|
-| `DEPLOY_HOST` | IP hoặc hostname server (ví dụ `1.2.3.4` hoặc `deploy.example.com`) |
-| `DEPLOY_USER` | User SSH (ví dụ `ubuntu`) |
-| `SSH_PRIVATE_KEY` | Nội dung private key SSH (đủ để SSH vào server) |
-| `DEPLOY_REPO_DIR` | (Tùy chọn) Đường dẫn thư mục repo trên server (mặc định `$HOME/EDUAI`) |
-| `DEPLOY_SSH_PORT` | (Tùy chọn) Cổng SSH, mặc định `22` |
+- **CI** (`.github/workflows/ci.yml`): On push/PR to `main` or `develop` — lint (Ruff) and Docker build for backend and frontend.
+- **CD** (`.github/workflows/cd.yml`): On release (tag) — build and push images to GitHub Container Registry.
 
-Sau khi cấu hình, mỗi lần push lên `main`, workflow sẽ tự deploy lên server.
+Do not commit `.env`; use `.env.example` as reference.
 
-**Khi deploy – cần lưu ý:**
+---
 
-1. **File `.env` trên server**  
-   Workflow **không** tạo hay sửa file `.env`. Trên server bạn phải tự tạo `.env` (copy từ `.env.example`, điền giá trị production). Ví dụ production:
-   - `EDUAI_DATA_BASE_PATH=/data` (volume mount trong Docker)
-   - `QDRANT_HOST=eduai-qdrant` (đã set trong `docker-compose.yml` cho backend; không chọn gì trong UI = dùng Qdrant trong Docker)
-   - `API_BASE_URL` = URL để user truy cập backend (vd `http://<server-ip>:8011` hoặc domain reverse proxy)
+## Deployment
 
-2. **Qdrant khi chạy Docker**  
-   Mặc định backend đã dùng `eduai-qdrant:6333`. Nếu cần **thêm** Qdrant service khác (vd Qdrant chạy ở máy khác), trong `.env` trên server thêm:
-   - `QDRANT_SERVICES="http://qdrant-remote:6333"` hoặc `QDRANT_SERVICES="Production|https://qdrant.prod.example.com:6333"`  
-   Frontend sẽ đọc và hiển thị thêm lựa chọn trong dropdown; backend kết nối tới URL được chọn.
+- Run on VPS, on-prem, or cloud (e.g. AWS, GCP, Azure).
+- Production: use `docker-compose.prod.yml` with `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d`.
+- Optional: configure GitHub Actions deploy workflow (e.g. SSH deploy on push to `main`); see workflow comments and repo docs.
 
-3. **Volume dữ liệu (prod)**  
-   `docker-compose.prod.yml` dùng named volume `eduai_data` (không bind path host). Data nằm trong volume Docker; cần backup hoặc mount path cụ thể nếu muốn lưu ra ổ đĩa server.
+---
+
+## Contributing
+
+Contributions are welcome: issues, pull requests, and documentation improvements. Please open an issue first for large changes.
+
+---
+
+## License
+
+See the [LICENSE](LICENSE) file in this repository (if present). Otherwise, use and modification are at your own responsibility; consider adding a license before public use.

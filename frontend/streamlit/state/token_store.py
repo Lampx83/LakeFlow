@@ -5,21 +5,21 @@ import os
 def get_token_root() -> Path:
     """
     Quy ước rõ ràng:
-    - EDUAI_RUNTIME=docker|prod  → /data
-    - mặc định (local dev)       → ~/.eduai
+    - LAKEFLOW_RUNTIME=docker|prod  → /data
+    - mặc định (local dev)          → ~/.lakeflow
     """
 
-    runtime = os.getenv("EDUAI_RUNTIME", "local").lower()
+    runtime = os.getenv("LAKEFLOW_RUNTIME", "local").lower()
 
     if runtime in {"docker", "prod"}:
         return Path("/data")
 
     # Local dev (PyCharm, CLI, etc.)
-    return Path.home() / ".eduai"
+    return Path.home() / ".lakeflow"
 
 
 TOKEN_ROOT = get_token_root()
-TOKEN_FILE = TOKEN_ROOT / ".eduai_token"
+TOKEN_FILE = TOKEN_ROOT / ".lakeflow_token"
 
 
 def save_token(token: str) -> None:

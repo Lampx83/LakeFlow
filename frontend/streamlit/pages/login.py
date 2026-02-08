@@ -1,6 +1,6 @@
 import streamlit as st
 
-from config.settings import EDUAI_MODE
+from config.settings import LAKEFLOW_MODE
 from services.api_client import login
 from state.session import init_session, is_logged_in
 from state.navigation import set_page
@@ -41,7 +41,7 @@ def render():
         password = st.text_input(
             "Password",
             type="password",
-            value="admin123" if EDUAI_MODE == "DEV" else "",
+            value="admin123" if LAKEFLOW_MODE == "DEV" else "",
         )
         remember = st.checkbox("🔒 Nhớ đăng nhập")
         submitted = st.form_submit_button("Login")
