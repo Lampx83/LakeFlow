@@ -1,6 +1,6 @@
 # Deploy lên server Ubuntu mỗi khi push lên main
-# Cần cấu hình Secrets: DEPLOY_HOST, DEPLOY_USER, SSH_PRIVATE_KEY
-# Tùy chọn: DEPLOY_REPO_DIR (mặc định ~/lakeflow), DEPLOY_SSH_PORT (mặc định 22)
+# Secrets bắt buộc: DEPLOY_HOST, DEPLOY_USER, SSH_PRIVATE_KEY
+# Tùy chọn: DEPLOY_SSH_PORT (nếu SSH không dùng 22, ví dụ 8901), DEPLOY_REPO_DIR (mặc định ~/lakeflow)
 
 name: Deploy
 

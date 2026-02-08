@@ -176,7 +176,7 @@ Vào **Settings → Secrets and variables → Actions**, thêm **Actions secrets
 | `DEPLOY_USER` | Có | User SSH (vd. `ubuntu`) |
 | `SSH_PRIVATE_KEY` | Có | Toàn bộ nội dung file private key (deploy_lakeflow) |
 | `DEPLOY_REPO_DIR` | Không | Thư mục chứa repo trên server; mặc định `~/lakeflow` |
-| `DEPLOY_SSH_PORT` | Không | Cổng SSH; mặc định `22` |
+| `DEPLOY_SSH_PORT` | Không | Cổng SSH; mặc định `22`. **Nếu server dùng cổng khác (vd. 8901) thì bắt buộc thêm secret này.** |
 
 Sau khi lưu secrets, mỗi lần bạn **push lên `main`**, workflow **Deploy** sẽ chạy: SSH vào server → `cd <DEPLOY_REPO_DIR>` → `git pull origin main` → `docker compose -f docker-compose.yml -f docker-compose.deploy.yml up -d --build`.
 
