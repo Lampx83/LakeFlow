@@ -1,0 +1,29 @@
+# Deploy lên server Ubuntu mỗi khi push lên main
+# Cần cấu hình Secrets: DEPLOY_HOST, DEPLOY_USER, SSH_PRIVATE_KEY
+# Tùy chọn: DEPLOY_REPO_DIR (mặc định ~/lakeflow), DEPLOY_SSH_PORT (mặc định 22)
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy to Ubuntu server
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          REPO_DIR: ${{ secrets.DEPLOY_REPO_DIR }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.DEPLOY_SSH_PORT || '22' }}
+          script: |
+            set -e
+            cd "${REPO_DIR:-$HOME/lakeflow}"
+            git pull origin main
+            docker compose -f docker-compose.yml -f docker-compose.deploy.yml up -d --build

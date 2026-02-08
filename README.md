@@ -124,9 +124,64 @@ Do not commit `.env`; use `.env.example` as reference.
 
 ## Deployment
 
-- Run on VPS, on-prem, or cloud (e.g. AWS, GCP, Azure).
-- Use `docker compose up -d` (or `docker compose up -d --build`) to run all services; configure `.env` on the server (e.g. `LAKEFLOW_DATA_BASE_PATH`, `QDRANT_HOST`, `API_BASE_URL`).
-- Optional: configure GitHub Actions deploy workflow (e.g. SSH deploy on push to `main`); see workflow comments and repo docs.
+### Chạy thủ công trên server
+
+- Chạy trên VPS, on-prem hoặc cloud (AWS, GCP, Azure).
+- Trên server: cấu hình `.env` rồi chạy `docker compose up -d` (hoặc dùng override deploy: `docker compose -f docker-compose.yml -f docker-compose.deploy.yml up -d --build`).
+
+### Deploy tự động mỗi khi push lên `main`
+
+Workflow `.github/workflows/deploy.yml` sẽ SSH vào server Ubuntu, `git pull` và chạy `docker compose` mỗi khi có push lên nhánh `main`.
+
+#### Bước 1 – Trên server Ubuntu (chỉ làm một lần)
+
+1. **Cài Docker và Docker Compose**
+   ```bash
+   sudo apt-get update && sudo apt-get install -y ca-certificates curl
+   sudo install -m 0755 -d /etc/apt/keyrings
+   sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+   sudo chmod a+r /etc/apt/keyrings/docker.asc
+   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+   sudo apt-get update && sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+   sudo usermod -aG docker $USER
+   ```
+   Đăng xuất/đăng nhập lại (hoặc `newgrp docker`) rồi kiểm tra: `docker compose version`.
+
+2. **Clone repo** (dùng user sẽ dùng để SSH deploy, ví dụ `ubuntu` hoặc `deploy`)
+   ```bash
+   cd ~
+   git clone https://github.com/Lampx83/lakeflow.git
+   cd lakeflow
+   ```
+
+3. **Tạo file `.env`** (không commit file này)
+   ```bash
+   cp .env.example .env
+   nano .env
+   ```
+   Điền ít nhất: `LAKEFLOW_DATA_BASE_PATH=/data`, `QDRANT_HOST=lakeflow-qdrant`, `API_BASE_URL=http://<IP-server>:8011` (hoặc domain của bạn).
+
+4. **SSH key để GitHub Actions đẩy code**
+   - Trên server tạo key (nếu chưa có): `ssh-keygen -t ed25519 -C "deploy" -f ~/.ssh/deploy_lakeflow -N ""`
+   - Thêm public key vào `~/.ssh/authorized_keys`: `cat ~/.ssh/deploy_lakeflow.pub >> ~/.ssh/authorized_keys`
+   - Lấy **nội dung private key** để dán vào GitHub Secret: `cat ~/.ssh/deploy_lakeflow` (copy toàn bộ kể cả dòng BEGIN/END).
+
+#### Bước 2 – Trong GitHub repo
+
+Vào **Settings → Secrets and variables → Actions**, thêm **Actions secrets**:
+
+| Secret | Bắt buộc | Mô tả |
+|--------|----------|--------|
+| `DEPLOY_HOST` | Có | IP hoặc hostname server (vd. `123.45.67.89` hoặc `myserver.com`) |
+| `DEPLOY_USER` | Có | User SSH (vd. `ubuntu`) |
+| `SSH_PRIVATE_KEY` | Có | Toàn bộ nội dung file private key (deploy_lakeflow) |
+| `DEPLOY_REPO_DIR` | Không | Thư mục chứa repo trên server; mặc định `~/lakeflow` |
+| `DEPLOY_SSH_PORT` | Không | Cổng SSH; mặc định `22` |
+
+Sau khi lưu secrets, mỗi lần bạn **push lên `main`**, workflow **Deploy** sẽ chạy: SSH vào server → `cd <DEPLOY_REPO_DIR>` → `git pull origin main` → `docker compose -f docker-compose.yml -f docker-compose.deploy.yml up -d --build`.
+
+- **Lưu ý:** Trên server cần cấu hình Git (nếu clone bằng HTTPS thì `git pull` không cần key; nếu clone bằng SSH thì server cần có deploy key hoặc dùng HTTPS).
+- **Data:** File `docker-compose.deploy.yml` dùng **named volume** `lakeflow_data` (không bind path host). Dữ liệu nằm trong volume Docker; cần backup hoặc mount path cụ thể nếu muốn lưu ra ổ đĩa.
 
 ---
 
