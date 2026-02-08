@@ -57,6 +57,14 @@ QDRANT_API_KEY = os.getenv(
 
 QDRANT_URL = f"http://{QDRANT_HOST}:{QDRANT_PORT}"
 
+# =====================================================
+# OPENAI (Q&A / LLM)
+# =====================================================
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "").strip() or None  # Azure/proxy; empty = official API
+
 
 def get_qdrant_url(override: str | None = None) -> str:
     """URL Qdrant dùng cho request: override nếu có, không thì dùng env (mặc định dev=localhost:6333, docker=lakeflow-qdrant:6333 qua QDRANT_HOST)."""
@@ -75,3 +83,4 @@ if DEBUG:
     print("[BOOT] JWT_ALGORITHM =", JWT_ALGORITHM)
     print("[BOOT] JWT_EXPIRE_MINUTES =", JWT_EXPIRE_MINUTES)
     print("[BOOT] QDRANT_URL =", QDRANT_URL)
+    print("[BOOT] OPENAI_MODEL =", OPENAI_MODEL, "OPENAI_API_KEY set =", bool(OPENAI_API_KEY))
