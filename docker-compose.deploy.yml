@@ -5,6 +5,9 @@
 #   Default: LAKEFLOW_DATA_PATH=$REPO_DIR/data (set in deploy workflow)
 #   Server custom: export LAKEFLOW_DATA_PATH=/datalake/research (create dir with sudo once, then deploy user needs rwx)
 #
+# Qdrant: mặc định dùng named volume (dữ liệu trong /var/lib/docker/volumes/..., không mất khi down).
+#   Muốn lưu ra thư mục cố định: export QDRANT_DATA_PATH=/datalake/qdrant, tạo thư mục rồi deploy.
+#
 # - Backend: bỏ mount source, bỏ --reload
 # - Frontend: bỏ mount ./backend
 
@@ -25,6 +28,7 @@ services:
       - lakeflow_data:/data
 
 # Bind volume to LAKEFLOW_DATA_PATH (default: repo/data, no sudo) or set on server for e.g. /datalake/research
+# Qdrant: vẫn dùng named volume từ docker-compose.yml (dữ liệu không mất khi down). Muốn bind host: thêm override qdrant_data với device: /datalake/qdrant.
 volumes:
   lakeflow_data:
     driver: local

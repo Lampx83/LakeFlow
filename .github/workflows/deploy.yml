@@ -19,6 +19,7 @@ jobs:
         env:
           REPO_DIR: ${{ secrets.DEPLOY_REPO_DIR }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
