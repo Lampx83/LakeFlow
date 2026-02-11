@@ -35,4 +35,4 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: ${LAKEFLOW_DATA_PATH:-./data}
+      device: ${LAKEFLOW_DATA_PATH:-./data} 
