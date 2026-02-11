@@ -9,7 +9,7 @@ services:
     ports:
       - "8013:6333"
     volumes:
-      - qdrant_data:/qdrant/storage
+      - /datalake/qdrant:/qdrant/storage
     restart: unless-stopped
 
   # =========================
