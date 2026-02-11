@@ -37,6 +37,11 @@ jobs:
               mv .env.tmp .env
               echo "OPENAI_API_KEY=${OPENAI_API_KEY}" >> .env
             fi
+            if [ -n "${LLM_BASE_URL:-}" ]; then
+              grep -v '^LLM_BASE_URL=' .env > .env.tmp 2>/dev/null || true
+              mv .env.tmp .env
+              echo "LLM_BASE_URL=${LLM_BASE_URL}" >> .env
+            fi
             # Backend Dockerfile cần BuildKit (torch CPU trước, cache mount). Bắt buộc để không tải CUDA ~2GB.
             export DOCKER_BUILDKIT=1
             export COMPOSE_DOCKER_CLI_BUILD=1
