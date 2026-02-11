@@ -9,7 +9,8 @@ services:
     ports:
       - "8013:6333"
     volumes:
-      - /datalake/qdrant:/qdrant/storage
+      # macOS: dùng named volume (không cần tạo /datalake/qdrant). Server: có thể override trong deploy để bind /datalake/qdrant
+      - qdrant_data:/qdrant/storage
     restart: unless-stopped
 
   # =========================
@@ -72,6 +73,7 @@ services:
 # Volumes
 # =========================
 # Local (dev): lakeflow_data = Synology Drive. Server: dùng docker-compose.deploy.yml → /datalake/research
+# qdrant_data: named volume (Mac/Linux đều chạy được). Server muốn bind host: thêm trong deploy override.
 volumes:
   lakeflow_data:
     driver: local
