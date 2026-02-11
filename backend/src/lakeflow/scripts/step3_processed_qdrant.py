@@ -55,7 +55,7 @@ QDRANT_PORT = int(os.getenv("QDRANT_PORT", "6333"))
 # ======================================================
 
 def main():
-    print("=== RUN QDRANT INGEST (400 → Qdrant) ===")
+    print("=== RUN QDRANT INGEST (400 -> Qdrant) ===")
 
     embeddings_root = paths.embeddings_path()
     processed_root = paths.processed_path()
@@ -91,7 +91,7 @@ def main():
     only_folders = [s.strip() for s in (only_folders_env or "").split(",") if s.strip()] or None
     collection_name = (os.getenv("PIPELINE_QDRANT_COLLECTION") or "").strip() or None
     if only_folders:
-        print(f"[QDRANT] Chỉ chạy các thư mục: {only_folders}")
+        print(f"[QDRANT] Running only folders: {only_folders}")
     if collection_name:
         print(f"[QDRANT] Collection: {collection_name}")
 
