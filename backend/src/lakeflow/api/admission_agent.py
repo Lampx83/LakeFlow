@@ -42,7 +42,7 @@ def get_metadata() -> dict:
     Metadata cua Tro ly Admission (tuong thich Research agent).
     """
     return {
-        "name": "Admission",
+        "name": "Thông tin tuyển sinh",
         "description": "Tra loi cau hoi ve tuyen sinh, quy che tuyen sinh va tai lieu lien quan. Du lieu lay tu collection Admission trong Qdrant.",
         "version": "1.0.0",
         "developer": "LakeFlow",
