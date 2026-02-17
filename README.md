@@ -6,6 +6,33 @@
 
 ---
 
+## Quick install (one command)
+
+Like `create-react-app` — scaffold a new LakeFlow project with one command:
+
+```bash
+pipx run lakeflow init
+```
+
+Or specify a folder name:
+
+```bash
+pipx run lakeflow init my-data-lake
+```
+
+You can also use `pip`:
+
+```bash
+pip install lakeflow
+lakeflow init my-data-lake
+```
+
+The CLI downloads the latest LakeFlow from GitHub, extracts it, and optionally runs Docker Compose. When done, open **http://localhost:8011** (API) and **http://localhost:8012** (Streamlit UI).
+
+**Developer?** To contribute or customize the source, clone from GitHub and use editable install — see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
 ## What is LakeFlow?
 
 LakeFlow is an open-source platform that turns your **Data Lake** into a structured pipeline:
@@ -64,7 +91,7 @@ LakeFlow/
 │   └── README.md
 ├── frontend/
 │   └── streamlit/     # Streamlit control UI
-│       └── README.md
+├── website/           # Landing page (Next.js, deploy to Vercel)
 ├── docker-compose.yml
 ├── .env.example
 └── README.md

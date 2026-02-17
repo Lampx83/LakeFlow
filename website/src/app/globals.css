@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0a0a0f;
+  --foreground: #fafafa;
+  --brand: #3b82f6;
+  --brand-hover: #60a5fa;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.code-block {
+  @apply rounded-lg border border-white/10 bg-white/5 px-4 py-3 font-mono text-sm text-brand-400;
+}
+
+.gradient-text {
+  @apply bg-gradient-to-r from-brand-400 to-brand-300 bg-clip-text text-transparent;
+}

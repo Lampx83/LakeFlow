@@ -5,8 +5,52 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "lakeflow"
 version = "0.1.0"
-description = "LakeFlow backend & data pipeline"
+description = "Data Lake pipelines for Vector DB, RAG & AI. Ingest, process, embed, and semantic search."
 requires-python = ">=3.10"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "LakeFlow" }]
+keywords = ["rag", "ai", "vector-db", "data-lake", "qdrant", "embeddings"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+dependencies = []  # CLI uses stdlib only; use lakeflow[full] for backend
+
+[project.optional-dependencies]
+dev = ["ruff>=0.1.0", "pytest>=7.0"]
+full = [
+  "python-dotenv>=1.0.0",
+  "pandas>=2.0.0",
+  "numpy>=1.26.0",
+  "PyPDF2>=3.0.0",
+  "pdfplumber>=0.11.0",
+  "python-docx>=1.1.0",
+  "openpyxl>=3.1.0",
+  "sentence-transformers>=2.2.2",
+  "transformers>=4.36.0",
+  "fastapi>=0.110.0",
+  "uvicorn>=0.27.0",
+  "qdrant-client>=1.16.0",
+  "requests>=2.31.0",
+  "passlib[bcrypt]>=1.7.4",
+  "python-jose>=3.3.0",
+  "tqdm>=4.66.0",
+  "loguru>=0.7.2",
+]
+
+[project.scripts]
+lakeflow = "lakeflow.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Lampx83/LakeFlow"
+Documentation = "https://lakeflow.readthedocs.io"
+Repository = "https://github.com/Lampx83/LakeFlow"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
