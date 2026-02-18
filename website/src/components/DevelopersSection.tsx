@@ -3,7 +3,7 @@ const resources = [
     title: "Quick Start",
     description: "Scaffold a new LakeFlow project with one command and run with Docker.",
     href: "/#hero",
-    command: "pipx run lakeflow init",
+    command: "pipx run lake-flow-pipeline init",
   },
   {
     title: "Documentation",
@@ -18,8 +18,8 @@ const resources = [
   },
   {
     title: "PyPI",
-    description: "lakeflow package for pip install.",
-    href: "https://pypi.org/project/lakeflow/",
+    description: "lake-flow-pipeline package — pip install, live at pypi.org.",
+    href: "https://pypi.org/project/lake-flow-pipeline/",
     external: true,
   },
 ];

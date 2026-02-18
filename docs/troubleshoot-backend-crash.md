@@ -1,37 +1,37 @@
 # Backend container Restarting / Connection refused
 
-Khi `docker ps` thấy `lakeflow-backend` có **STATUS = Restarting**, backend đang crash và Docker tự khởi động lại.
+When `docker ps` shows `lakeflow-backend` with **STATUS = Restarting**, the backend is crashing and Docker is restarting it.
 
-## 1. Xem log backend (bắt buộc)
+## 1. Check backend logs (required)
 
-Trên server chạy:
+On the server run:
 
 ```bash
 docker logs lakeflow-backend
 ```
 
-Hoặc 100 dòng gần nhất:
+Or the last 100 lines:
 
 ```bash
 docker logs --tail 100 lakeflow-backend
 ```
 
-Traceback Python hoặc lỗi in ra sẽ cho biết nguyên nhân (thiếu env, lỗi import, không kết nối được Qdrant, v.v.).
+The Python traceback or printed errors will show the cause (missing env, import error, cannot connect to Qdrant, etc.).
 
-## 2. Các lỗi thường gặp
+## 2. Common issues
 
 - **Missing required environment variable**  
-  Trên server cần có file `.env` (hoặc cấu hình env trong compose). Ít nhất:  
+  The server must have a `.env` file (or env configured in compose). At minimum:  
   `LAKEFLOW_DATA_BASE_PATH=/data`, `QDRANT_HOST=lakeflow-qdrant`, `QDRANT_PORT=6333`.
 
 - **Connection refused / Qdrant**  
-  Backend cần Qdrant chạy trước. Kiểm tra: `docker ps` có `lakeflow-qdrant` đang Up. Nếu Qdrant đang khởi động chậm, backend có thể crash khi gọi Qdrant lần đầu; thử restart:  
+  The backend needs Qdrant running first. Check: `docker ps` shows `lakeflow-qdrant` as Up. If Qdrant is starting slowly, the backend may crash on first Qdrant call; try restarting:  
   `docker compose -f docker-compose.yml -f docker-compose.deploy.yml restart lakeflow-backend`.
 
 - **Permission / path**  
-  Nếu log báo lỗi đọc/ghi thư mục (vd. `/data`): kiểm tra quyền thư mục bind mount (vd. `/datalake/research`) và user chạy container.
+  If the log reports read/write errors on a directory (e.g. `/data`): check permissions on the bind mount (e.g. `/datalake/research`) and the user running the container.
 
-Sau khi sửa (env, quyền, v.v.), chạy lại:
+After fixing (env, permissions, etc.), run again:
 
 ```bash
 export LAKEFLOW_DATA_PATH=/datalake/research

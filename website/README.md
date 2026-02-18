@@ -2,6 +2,8 @@
 
 Landing page and developer documentation for [LakeFlow](https://github.com/Lampx83/LakeFlow) — Data Lake pipelines for RAG & AI.
 
+**Live:** [https://lake-flow.vercel.app/](https://lake-flow.vercel.app/) · **PyPI:** [lake-flow-pipeline](https://pypi.org/project/lake-flow-pipeline/)
+
 ## Run locally
 
 ```bash

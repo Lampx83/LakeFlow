@@ -23,7 +23,7 @@ const footerSections = [
     links: [
       { label: "Docs", href: "/docs" },
       { label: "GitHub", href: "https://github.com/Lampx83/LakeFlow" },
-      { label: "PyPI: lakeflow", href: "https://pypi.org/project/lakeflow/" },
+      { label: "PyPI: lake-flow-pipeline", href: "https://pypi.org/project/lake-flow-pipeline/" },
     ],
   },
   {

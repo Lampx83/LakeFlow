@@ -9,7 +9,7 @@ services:
     ports:
       - "8013:6333"
     volumes:
-      # macOS: dùng named volume (không cần tạo /datalake/qdrant). Server: có thể override trong deploy để bind /datalake/qdrant
+      # macOS: use named volume (no need to create /datalake/qdrant). Server: can override in deploy to bind /datalake/qdrant
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
 
@@ -18,7 +18,7 @@ services:
   # =========================
   lakeflow-backend:
     build:
-      context: ./backend
+      context: ./lake-flow
     container_name: lakeflow-backend
     depends_on:
       - qdrant
@@ -28,13 +28,13 @@ services:
       - .env
     environment:
       LAKEFLOW_DATA_BASE_PATH: /data
-      # Mặc định Qdrant khi chạy Docker (không chọn gì = lakeflow-qdrant:6333)
+      # Default Qdrant when running Docker (no selection = lakeflow-qdrant:6333)
       QDRANT_HOST: lakeflow-qdrant
       QDRANT_PORT: "6333"
     volumes:
       - lakeflow_data:/data
       # Mount source for hot-reload when developing
-      - ./backend/src:/app/src
+      - ./lake-flow/src:/app/src
     command: uvicorn lakeflow.main:app --host 0.0.0.0 --port 8011 --reload
     restart: unless-stopped
     healthcheck:
@@ -52,10 +52,11 @@ services:
     env_file:
       - .env
     environment:
-      # Trong Docker luôn gọi backend qua tên service (lakeflow-backend). Nếu .env có eduai-backend thì bị ghi đè.
+      # In Docker always call backend by service name (lakeflow-backend). If .env has eduai-backend it is overridden.
       API_BASE_URL: http://lakeflow-backend:8011
     build:
-      context: ./frontend/streamlit
+      context: ./lake-flow-ui
+      dockerfile: lake-flow-ui/Dockerfile
     container_name: lakeflow-frontend
     depends_on:
       lakeflow-backend:
@@ -63,17 +64,17 @@ services:
     ports:
       - "8012:8012"
     volumes:
-      # Mount source for hot-reload when developing (sửa code → Streamlit tự rerun nhờ runOnSave trong .streamlit/config.toml)
-      - ./frontend/streamlit:/app
-      - ./backend:/app/backend
+      # Mount source for hot-reload when developing (edit code → Streamlit auto rerun via runOnSave in .streamlit/config.toml)
+      - ./lake-flow-ui:/app
+      - ./lake-flow:/app/backend
       - lakeflow_data:/data
     restart: unless-stopped
 
 # =========================
 # Volumes
 # =========================
-# Local (dev): lakeflow_data = Synology Drive. Server: dùng docker-compose.deploy.yml → /datalake/research
-# qdrant_data: named volume (Mac/Linux đều chạy được). Server muốn bind host: thêm trong deploy override.
+# Local (dev): lakeflow_data = Synology Drive. Server: use docker-compose.deploy.yml → /datalake/research
+# qdrant_data: named volume (works on Mac/Linux). To bind host dir on server: add in deploy override.
 volumes:
   lakeflow_data:
     driver: local

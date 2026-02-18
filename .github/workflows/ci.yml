@@ -1,5 +1,5 @@
-# CI: Lint + Docker build (mỗi push / PR)
-# Repo public: không dùng secret, chỉ kiểm tra code & build image
+# CI: Lint + Docker build (on each push / PR)
+# Public repo: no secrets, only checks code & builds image
 
 name: CI
 
@@ -25,8 +25,8 @@ jobs:
         run: pip install ruff
 
       - name: Lint (Ruff)
-        run: ruff check backend/src frontend/streamlit
-        continue-on-error: true  # CI vẫn pass khi còn lỗi lint; bỏ khi đã fix hết
+        run: ruff check lake-flow/src lake-flow-ui
+        continue-on-error: true  # CI still passes while lint errors remain; remove when all fixed
 
   build-backend:
     name: Build Backend Docker
@@ -37,7 +37,7 @@ jobs:
       - name: Build backend image
         env:
           DOCKER_BUILDKIT: "1"
-        run: docker build -t lakeflow-backend:ci ./backend
+        run: docker build -t lakeflow-backend:ci ./lake-flow
 
   build-frontend:
     name: Build Frontend Docker
@@ -48,4 +48,4 @@ jobs:
       - name: Build frontend image
         env:
           DOCKER_BUILDKIT: "1"
-        run: docker build -t lakeflow-frontend:ci ./frontend/streamlit
+        run: docker build -t lakeflow-frontend:ci -f lake-flow-ui/Dockerfile ./lake-flow-ui

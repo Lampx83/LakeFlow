@@ -1,15 +1,15 @@
-# Override dùng khi deploy lên server (chạy cùng docker-compose.yml)
-# Ví dụ: docker compose -f docker-compose.yml -f docker-compose.deploy.yml up -d --build
+# Override used when deploying to server (run with docker-compose.yml)
+# Example: docker compose -f docker-compose.yml -f docker-compose.deploy.yml up -d --build
 #
 # Data lake path (no sudo):
 #   Default: LAKEFLOW_DATA_PATH=$REPO_DIR/data (set in deploy workflow)
 #   Server custom: export LAKEFLOW_DATA_PATH=/datalake/research (create dir with sudo once, then deploy user needs rwx)
 #
-# Qdrant: mặc định dùng named volume (dữ liệu trong /var/lib/docker/volumes/..., không mất khi down).
-#   Muốn lưu ra thư mục cố định: export QDRANT_DATA_PATH=/datalake/qdrant, tạo thư mục rồi deploy.
+# Qdrant: default uses named volume (data in /var/lib/docker/volumes/..., persists across down).
+#   To use a fixed host dir: export QDRANT_DATA_PATH=/datalake/qdrant, create the dir then deploy.
 #
-# - Backend: bỏ mount source, bỏ --reload
-# - Frontend: bỏ mount ./backend
+# - Backend: no source mount, no --reload
+# - Frontend: no mount of ./lake-flow-ui
 
 services:
   lakeflow-backend:
@@ -28,7 +28,7 @@ services:
       - lakeflow_data:/data
 
 # Bind volume to LAKEFLOW_DATA_PATH (default: repo/data, no sudo) or set on server for e.g. /datalake/research
-# Qdrant: vẫn dùng named volume từ docker-compose.yml (dữ liệu không mất khi down). Muốn bind host: thêm override qdrant_data với device: /datalake/qdrant.
+# Qdrant: still uses named volume from docker-compose.yml (data persists on down). To bind host dir: add override qdrant_data with device: /datalake/qdrant.
 volumes:
   lakeflow_data:
     driver: local

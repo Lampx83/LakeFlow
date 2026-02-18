@@ -4,10 +4,12 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://lake-flow.vercel.app"),
   title: "LakeFlow — Data Lake pipelines for RAG & AI",
   description:
     "Ingest, process, embed, and semantic search. Python platform for Data Lake, Vector DB, and RAG. Open source, self-hosted.",
   openGraph: {
+    url: "https://lake-flow.vercel.app",
     title: "LakeFlow — Data Lake pipelines for RAG & AI",
     description:
       "Ingest, process, embed, and semantic search. Python platform for RAG & AI. Open source.",

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { CopyButton } from "./CopyButton";
 
-const COMMAND = "pipx run lakeflow init";
+const COMMAND = "pipx run lake-flow-pipeline init";
 
 export function Hero() {
   return (

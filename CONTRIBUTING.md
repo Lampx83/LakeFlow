@@ -9,7 +9,7 @@ Thank you for your interest in contributing to LakeFlow. This document explains 
 ### 1. End user (run with Docker)
 
 ```bash
-pip install lakeflow
+pip install lake-flow-pipeline
 lakeflow init my-project
 cd my-project
 docker compose up -d
@@ -18,7 +18,7 @@ docker compose up -d
 Or with `pipx` (recommended — isolated environment):
 
 ```bash
-pipx run lakeflow init my-project
+pipx run lake-flow-pipeline init my-project
 ```
 
 ### 2. Developer (contribute to source)
@@ -27,7 +27,7 @@ Clone the repository and install in editable mode so your changes take effect im
 
 ```bash
 git clone https://github.com/Lampx83/LakeFlow.git
-cd LakeFlow/backend
+cd LakeFlow/lake-flow
 
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
@@ -50,7 +50,7 @@ python -m uvicorn lakeflow.main:app --reload --port 8011
 Run the Streamlit UI:
 
 ```bash
-streamlit run frontend/streamlit/app.py
+lakeflow-ui
 ```
 
 ---
@@ -73,5 +73,6 @@ streamlit run frontend/streamlit/app.py
 
 ## Questions?
 
+- **Website**: [https://lake-flow.vercel.app/](https://lake-flow.vercel.app/)
 - **GitHub Issues**: [Lampx83/LakeFlow/issues](https://github.com/Lampx83/LakeFlow/issues)
-- **Documentation**: [Read the Docs](https://lakeflow.readthedocs.io) (when published)
+- **Documentation**: [lake-flow.vercel.app/docs](https://lake-flow.vercel.app/docs)

@@ -1,4 +1,4 @@
-# Publish lakeflow to PyPI on release (tag v*)
+# Publish lake-flow-pipeline to PyPI on release (tag v*)
 name: Publish to PyPI
 
 on:
@@ -17,5 +17,5 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          directory: backend
+          directory: lake-flow
           skip-existing: true

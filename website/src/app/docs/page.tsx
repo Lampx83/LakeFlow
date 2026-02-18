@@ -3,7 +3,15 @@ export default function DocsPage() {
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
       <h1 className="text-3xl font-bold text-white">Documentation</h1>
       <p className="mt-4 text-white/70">
-        LakeFlow documentation and guides:
+        LakeFlow documentation and guides. <strong>Website:</strong>{" "}
+        <a
+          href="https://lake-flow.vercel.app"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-brand-400 hover:underline"
+        >
+          https://lake-flow.vercel.app
+        </a>
       </p>
       <p className="mt-6 text-white/70">
         In the GitHub repository:
@@ -31,22 +39,22 @@ export default function DocsPage() {
         </li>
         <li>
           <a
-            href="https://github.com/Lampx83/LakeFlow/tree/main/backend/docs"
+            href="https://github.com/Lampx83/LakeFlow/tree/main/lake-flow/docs"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:underline"
           >
-            backend/docs — API docs (embed, search)
+            lake-flow/docs — API docs (embed, search)
           </a>
         </li>
         <li>
           <a
-            href="https://pypi.org/project/lakeflow/"
+            href="https://pypi.org/project/lake-flow-pipeline/"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:underline"
           >
-            PyPI — pip install lakeflow
+            PyPI — pip install lake-flow-pipeline (live 0.1.0)
           </a>
         </li>
       </ul>
@@ -54,15 +62,15 @@ export default function DocsPage() {
         <h2 className="text-lg font-semibold text-white">Quick commands</h2>
         <pre className="mt-3 font-mono text-sm text-brand-400">
 {`# Install and run init (recommended)
-pipx run lakeflow init my-project
+pipx run lake-flow-pipeline init my-project
 
 # Or with pip
-pip install lakeflow
+pip install lake-flow-pipeline
 lakeflow init my-project
 
 # Developer setup (clone + editable)
 git clone https://github.com/Lampx83/LakeFlow.git
-cd LakeFlow/backend
+cd LakeFlow/lake-flow
 pip install -e ".[dev,full]"
 `}
         </pre>
