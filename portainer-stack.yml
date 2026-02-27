@@ -43,8 +43,7 @@ services:
     image: docker.io/${DOCKERHUB_USER:-lampx83}/lakeflow-frontend:latest
     platform: linux/amd64
     depends_on:
-      lakeflow-backend:
-        condition: service_healthy
+      - lakeflow-backend
     ports:
       - "8012:8012"
     environment:
