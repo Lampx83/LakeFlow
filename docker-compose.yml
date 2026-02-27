@@ -1,15 +1,15 @@
+version: "3.9"
+
 services:
   # =========================
   # Vector Database
   # =========================
-
   qdrant:
     image: qdrant/qdrant:v1.16.2
     container_name: lakeflow-qdrant
     ports:
       - "8013:6333"
     volumes:
-      # macOS: dùng named volume (không cần tạo /datalake/qdrant). Server: có thể override trong deploy để bind /datalake/qdrant
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
 
@@ -28,15 +28,14 @@ services:
       - .env
     environment:
       LAKEFLOW_DATA_BASE_PATH: /data
-      # Mặc định Qdrant khi chạy Docker (không chọn gì = lakeflow-qdrant:6333)
       QDRANT_HOST: lakeflow-qdrant
       QDRANT_PORT: "6333"
     volumes:
       - lakeflow_data:/data
-      # Mount source for hot-reload when developing
       - ./backend/src:/app/src
     command: uvicorn lakeflow.main:app --host 0.0.0.0 --port 8011 --reload
     restart: unless-stopped
+
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8011/health"]
       interval: 5s
@@ -44,41 +43,52 @@ services:
       retries: 5
       start_period: 15s
 
-
   # =========================
-  # Streamlit Test Frontend
+  # Streamlit Frontend
   # =========================
   lakeflow-frontend:
-    env_file:
-      - .env
-    environment:
-      # Trong Docker luôn gọi backend qua tên service (lakeflow-backend). Nếu .env có eduai-backend thì bị ghi đè.
-      API_BASE_URL: http://lakeflow-backend:8011
     build:
       context: ./frontend/streamlit
     container_name: lakeflow-frontend
+
     depends_on:
-      lakeflow-backend:
-        condition: service_healthy
+      - lakeflow-backend
+
+    env_file:
+      - .env
+    environment:
+      API_BASE_URL: http://lakeflow-backend:8011
+
     ports:
       - "8012:8012"
+
     volumes:
-      # Mount source for hot-reload when developing (sửa code → Streamlit tự rerun nhờ runOnSave trong .streamlit/config.toml)
       - ./frontend/streamlit:/app
       - ./backend:/app/backend
       - lakeflow_data:/data
+
+    # wait backend ready rồi mới chạy streamlit
+    command: >
+      sh -c "
+      echo 'Waiting backend...';
+      until curl -s http://lakeflow-backend:8011/health; do
+        sleep 2;
+      done;
+      streamlit run app.py --server.port 8012 --server.address 0.0.0.0
+      "
+
     restart: unless-stopped
+
 
 # =========================
 # Volumes
 # =========================
-# Local (dev): lakeflow_data = Synology Drive. Server: dùng docker-compose.deploy.yml → /datalake/research
-# qdrant_data: named volume (Mac/Linux đều chạy được). Server muốn bind host: thêm trong deploy override.
 volumes:
   lakeflow_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: "${HOST_SYNOLOGY_PATH}" # Nó sẽ lấy C:/Users/Admin/SynologyDrive từ .env
+      device: "${HOST_SYNOLOGY_PATH}"
+
   qdrant_data:
