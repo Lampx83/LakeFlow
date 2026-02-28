@@ -44,7 +44,7 @@ def get_metadata() -> dict:
     Metadata cua Tro ly Admission (tuong thich Research agent).
     """
     return {
-        "name": "Admission",
+        "name": "Thông tin tuyển sinh",
         "description": "Tra loi cau hoi ve tuyen sinh, quy che tuyen sinh va tai lieu lien quan. Du lieu lay tu collection Admission trong Qdrant.",
         "version": "1.0.0",
         "developer": "LakeFlow",
@@ -58,9 +58,10 @@ def get_metadata() -> dict:
             },
         ],
         "sample_prompts": [
-            "Dieu kien tuyen sinh dai hoc chinh quy la gi?",
-            "Thoi gian nop ho so tuyen sinh nam nay?",
-            "Cac nganh dao tao va chi tieu tuyen sinh?",
+            "Báo cáo và thông tin từ Hội đồng tuyển sinh (HĐTS) về tình hình tuyển sinh?",
+            "Thông tin tuyển sinh đại học chính quy năm 2026, điều kiện và thời gian nộp hồ sơ?",
+            "Danh sách các ngành đào tạo, mã ngành và chỉ tiêu tuyển sinh 2026?",
+            "Điều kiện và thông tin tuyển sinh liên thông CĐ-ĐH, ĐH-ĐH năm 2026?",
         ],
         "provided_data_types": [
             {"type": "qdrant_collection", "description": "Collection Admission trong Qdrant"},
