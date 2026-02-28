@@ -58,10 +58,10 @@ def get_metadata() -> dict:
             },
         ],
         "sample_prompts": [
-            "Báo cáo và thông tin từ Hội đồng tuyển sinh (HĐTS) về tình hình tuyển sinh?",
-            "Thông tin tuyển sinh đại học chính quy năm 2026, điều kiện và thời gian nộp hồ sơ?",
-            "Danh sách các ngành đào tạo, mã ngành và chỉ tiêu tuyển sinh 2026?",
-            "Điều kiện và thông tin tuyển sinh liên thông CĐ-ĐH, ĐH-ĐH năm 2026?",
+            "Tổng chỉ tiêu tuyển sinh đại học chính quy năm 2026 là bao nhiêu?",
+            "Các ngành đào tạo mới (CTTA) trong tuyển sinh 2026?",
+            "Ngành Trí tuệ nhân tạo có chỉ tiêu tuyển sinh năm 2026 là bao nhiêu?",
+            "Danh sách các chương trình chất lượng cao (CLC) tuyển sinh 2026?",
         ],
         "provided_data_types": [
             {"type": "qdrant_collection", "description": "Collection Admission trong Qdrant"},
