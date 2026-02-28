@@ -82,7 +82,7 @@ Copy `.env.example` to `.env` and adjust:
 | `LAKEFLOW_MODE` | `DEV` = show Pipeline Runner in UI; omit or other = hide |
 | `QDRANT_HOST` | Qdrant host (e.g. `lakeflow-qdrant` in Docker, `localhost` when running Qdrant alone) |
 | `API_BASE_URL` | Backend URL (e.g. `http://lakeflow-backend:8011` in Docker, `http://localhost:8011` for local dev) |
-| `LLM_BASE_URL` | URL Ollama/LLM cho Q&A và **Admission agent** (vd. `https://research.neu.edu.vn/ollama`). **Máy chạy LakeFlow phải kết nối được tới URL này.** Nếu lỗi "No route to host" khi chat Admission → dùng Ollama nội bộ (vd. `http://host:11434`). |
+| `LLM_BASE_URL` | URL Ollama/LLM cho Q&A và **Admission agent**. **Máy chạy LakeFlow phải kết nối được tới URL này.** Nếu lỗi "No route to host" khi chat Admission → dùng Ollama nội bộ (vd. `http://host:11434`). |
 | `LLM_MODEL` | Tên model (mặc định `qwen3:8b`) |
 
 See `.env.example` for a full template.

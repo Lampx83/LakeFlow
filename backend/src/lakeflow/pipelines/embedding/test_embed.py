@@ -1,10 +1,12 @@
 import requests
 
-url = "https://research.neu.edu.vn/ollama/api/embed"
+from lakeflow.services.ollama_embed_service import OLLAMA_EMBED_URL, EMBED_MODEL
+
+url = OLLAMA_EMBED_URL
 
 payload = {
-    "model": "qwen3-embedding:8b",
-    "input": "Xin chào"
+    "model": EMBED_MODEL,
+    "input": ["Xin chào"]
 }
 
 resp = requests.post(url, json=payload)

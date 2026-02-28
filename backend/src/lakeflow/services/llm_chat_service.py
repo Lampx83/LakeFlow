@@ -1,6 +1,6 @@
 """
 Dịch vụ gọi LLM chat: hỗ trợ cả OpenAI-compatible (/v1/chat/completions) và native Ollama (/api/chat).
-Proxy như research.neu.edu.vn/ollama có thể chỉ hỗ trợ native API → dùng USE_OLLAMA_NATIVE_CHAT=true.
+Dùng LLM_BASE_URL từ .env. Proxy có thể chỉ hỗ trợ native API → dùng USE_OLLAMA_NATIVE_CHAT=true.
 """
 import os
 import requests
@@ -28,7 +28,7 @@ def chat_completion(
     base = LLM_BASE_URL.rstrip("/")
 
     if USE_OLLAMA_NATIVE_CHAT:
-        # Native Ollama /api/chat (proxy research.neu.edu.vn thường chỉ hỗ trợ path này)
+        # Native Ollama /api/chat (một số proxy chỉ hỗ trợ path này)
         url = f"{base}/api/chat"
         payload: Dict[str, Any] = {
             "model": LLM_MODEL,

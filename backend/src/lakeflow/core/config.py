@@ -65,7 +65,7 @@ QDRANT_URL = f"http://{QDRANT_HOST}:{QDRANT_PORT}"
 
 _llm_base = (os.getenv("LLM_BASE_URL") or os.getenv("OLLAMA_BASE_URL") or "").strip()
 _openai_base = (os.getenv("OPENAI_BASE_URL") or "").strip()
-LLM_BASE_URL = _llm_base or _openai_base or "https://research.neu.edu.vn/ollama"
+LLM_BASE_URL = _llm_base or _openai_base
 LLM_MODEL = (os.getenv("LLM_MODEL") or os.getenv("OPENAI_MODEL") or "qwen3:8b").strip()
 OPENAI_API_KEY = (os.getenv("OPENAI_API_KEY") or "").strip()
 

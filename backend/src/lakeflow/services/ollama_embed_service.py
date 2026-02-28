@@ -2,9 +2,11 @@ import os
 import requests
 from typing import List
 
-OLLAMA_EMBED_URL = os.getenv(
-    "OLLAMA_EMBED_URL",
-    "https://research.neu.edu.vn/ollama/api/embed"
+import lakeflow.config.env  # noqa: F401 - load .env trước config
+from lakeflow.core.config import LLM_BASE_URL
+
+OLLAMA_EMBED_URL = (
+    os.getenv("OLLAMA_EMBED_URL") or f"{LLM_BASE_URL.rstrip('/')}/api/embed"
 )
 
 EMBED_MODEL = os.getenv(
