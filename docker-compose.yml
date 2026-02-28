@@ -66,13 +66,14 @@ services:
       - ./backend:/app/backend
       - lakeflow_data:/data
 
-    # wait backend ready rồi mới chạy streamlit
+    # wait backend ready rồi mới chạy streamlit (dùng Python vì image không có curl)
     command: >
       sh -c "
       echo 'Waiting backend...';
-      until curl -s http://lakeflow-backend:8011/health; do
+      until python -c \"import urllib.request; urllib.request.urlopen('http://lakeflow-backend:8011/health')\" 2>/dev/null; do
         sleep 2;
       done;
+      echo 'Backend ready, starting Streamlit...';
       streamlit run app.py --server.port 8012 --server.address 0.0.0.0
       "
 
