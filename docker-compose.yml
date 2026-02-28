@@ -92,3 +92,9 @@ volumes:
       device: "${HOST_SYNOLOGY_PATH}"
 
   qdrant_data:
+networks:
+  neu-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
