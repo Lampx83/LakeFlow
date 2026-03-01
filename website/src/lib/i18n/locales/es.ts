@@ -85,7 +85,6 @@ export const es: Record<string, string> = {
   "footer.taglineEcosystem": "Parte del ecosistema AI con",
   "footer.tagline": "Código abierto. Uso gratuito.",
   "footer.github": "GitHub",
-  "footer.docs": "Docs",
   "docs.sidebar.documentation": "Documentación",
   "docs.sidebar.intro": "Introducción",
   "docs.sidebar.gettingStarted": "Primeros pasos",

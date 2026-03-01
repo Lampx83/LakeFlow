@@ -85,7 +85,6 @@ export const hi: Record<string, string> = {
   "footer.taglineEcosystem": "AI इकोसिस्टम का हिस्सा, के साथ",
   "footer.tagline": "ओपन सोर्स। मुफ्त उपयोग।",
   "footer.github": "GitHub",
-  "footer.docs": "दस्तावेज़",
   "docs.sidebar.documentation": "दस्तावेज़",
   "docs.sidebar.intro": "परिचय",
   "docs.sidebar.gettingStarted": "शुरुआत",

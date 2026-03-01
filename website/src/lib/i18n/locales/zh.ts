@@ -81,7 +81,6 @@ export const zh: Record<string, string> = {
   "footer.taglineEcosystem": "AI 生态系统的一部分，与",
   "footer.tagline": "开源。免费使用。",
   "footer.github": "GitHub",
-  "footer.docs": "文档",
   "docs.sidebar.documentation": "文档",
   "docs.sidebar.intro": "简介",
   "docs.sidebar.gettingStarted": "入门指南",
