@@ -30,7 +30,11 @@ jobs:
             set -e
             REPO_DIR="${REPO_DIR:-$HOME/lakeflow}"
             cd "$REPO_DIR"
+            # Preserve .env before pull (it may have local changes; merge would overwrite/remove it)
+            [ -f .env ] && cp .env .env.deploy.bak
+            git checkout -- .env 2>/dev/null || true
             git pull origin main
+            [ -f .env.deploy.bak ] && mv .env.deploy.bak .env
             export LAKEFLOW_DATA_PATH=/datalake/research
             if [ -n "${OPENAI_API_KEY:-}" ]; then
               touch .env
