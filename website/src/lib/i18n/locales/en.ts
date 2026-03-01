@@ -1,5 +1,10 @@
 /** English */
 export const en: Record<string, string> = {
+  "common.copy": "Copy",
+  "common.copied": "Copied!",
+  "common.ariaLanguage": "Language",
+  "common.ariaGitHub": "GitHub",
+  "common.ariaCopy": "Copy command",
   "header.navProduct": "Product",
   "header.navSolutions": "Solutions",
   "header.navDevelopers": "Developers",

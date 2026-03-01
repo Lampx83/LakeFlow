@@ -3,6 +3,11 @@ import { en } from "./en";
 
 export const zh: Record<string, string> = {
   ...en,
+  "common.copy": "复制",
+  "common.copied": "已复制！",
+  "common.ariaLanguage": "语言",
+  "common.ariaGitHub": "GitHub",
+  "common.ariaCopy": "复制命令",
   "header.navProduct": "产品",
   "header.navSolutions": "解决方案",
   "header.navDevelopers": "开发者",

@@ -55,7 +55,7 @@ export function Header() {
               type="button"
               onClick={() => setLangOpen((o) => !o)}
               className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-white/70 hover:bg-white/5 hover:text-white"
-              aria-label="Language"
+              aria-label={t("common.ariaLanguage")}
               aria-expanded={langOpen}
             >
               <span className="text-lg leading-none" aria-hidden>
@@ -99,7 +99,7 @@ export function Header() {
             target="_blank"
             rel="noopener noreferrer"
             className="hidden items-center gap-1.5 rounded-md px-3 py-2 text-sm text-white/70 hover:text-white sm:flex"
-            aria-label="GitHub"
+            aria-label={t("common.ariaGitHub")}
           >
             <GitHubIcon className="h-5 w-5" />
             <span>{t("header.navGitHub")}</span>

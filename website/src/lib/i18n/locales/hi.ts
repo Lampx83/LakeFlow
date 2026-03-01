@@ -3,6 +3,11 @@ import { en } from "./en";
 
 export const hi: Record<string, string> = {
   ...en,
+  "common.copy": "कॉपी करें",
+  "common.copied": "कॉपी हो गया!",
+  "common.ariaLanguage": "भाषा",
+  "common.ariaGitHub": "GitHub",
+  "common.ariaCopy": "कमांड कॉपी करें",
   "header.navProduct": "उत्पाद",
   "header.navSolutions": "समाधान",
   "header.navDevelopers": "डेवलपर्स",

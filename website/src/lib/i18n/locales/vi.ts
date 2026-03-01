@@ -1,5 +1,10 @@
 /** Tiếng Việt */
 export const vi: Record<string, string> = {
+  "common.copy": "Sao chép",
+  "common.copied": "Đã sao!",
+  "common.ariaLanguage": "Ngôn ngữ",
+  "common.ariaGitHub": "GitHub",
+  "common.ariaCopy": "Sao chép lệnh",
   "header.navProduct": "Sản phẩm",
   "header.navSolutions": "Giải pháp",
   "header.navDevelopers": "Nhà phát triển",
