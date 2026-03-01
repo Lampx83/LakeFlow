@@ -12,16 +12,13 @@ def render():
 
     st.header("🔐 Authentication")
 
-    # ==================================================
-    # ALREADY LOGGED IN → SHOW TOKEN ONLY
-    # ==================================================
     if is_logged_in():
-        st.success("✅ Đã đăng nhập")
+        st.success("✅ Logged in")
 
         st.subheader("🔑 Access Token")
         st.code(st.session_state.token, language="text")
 
-        st.caption("Token đang được sử dụng cho toàn bộ hệ thống frontend")
+        st.caption("Token is used for entire frontend system")
 
         if st.button("🚪 Logout", use_container_width=True):
             clear_token()
@@ -31,10 +28,7 @@ def render():
 
         return
 
-    # ==================================================
-    # NOT LOGGED IN → SHOW LOGIN FORM
-    # ==================================================
-    st.info("Vui lòng đăng nhập để tiếp tục")
+    st.info("Please log in to continue")
 
     with st.form("login_form"):
         username = st.text_input("Username", value="admin")
@@ -43,7 +37,7 @@ def render():
             type="password",
             value="admin123" if LAKEFLOW_MODE == "DEV" else "",
         )
-        remember = st.checkbox("🔒 Nhớ đăng nhập")
+        remember = st.checkbox("🔒 Remember login")
         submitted = st.form_submit_button("Login")
 
     if not submitted:
@@ -55,9 +49,6 @@ def render():
         st.error("❌ Login failed")
         return
 
-    # --------------------------------------------------
-    # SUCCESS
-    # --------------------------------------------------
     st.session_state.token = token
 
     if remember:

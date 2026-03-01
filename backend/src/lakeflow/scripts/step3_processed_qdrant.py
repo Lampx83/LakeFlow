@@ -25,15 +25,11 @@ from lakeflow.vectorstore.qdrant_ingest import (
 )
 
 
-# ======================================================
-# BOOTSTRAP RUNTIME CONFIG (BẮT BUỘC)
-# ======================================================
-
-data_base = os.getenv("LAKEFLOW_DATA_BASE_PATH")
+data_base = os.getenv("LAKE_ROOT")
 if not data_base:
     raise RuntimeError(
-        "LAKEFLOW_DATA_BASE_PATH is not set. "
-        "Example: export LAKEFLOW_DATA_BASE_PATH=/path/to/data_lake"
+        "LAKE_ROOT is not set. "
+        "Example: export LAKE_ROOT=/path/to/data_lake"
     )
 
 base_path = Path(data_base).expanduser().resolve()
@@ -42,17 +38,9 @@ runtime_config.set_data_base_path(base_path)
 print(f"[BOOT] DATA_BASE_PATH3 = {base_path}")
 
 
-# ======================================================
-# QDRANT CONFIG
-# ======================================================
-
 QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.getenv("QDRANT_PORT", "6333"))
 
-
-# ======================================================
-# MAIN
-# ======================================================
 
 def main():
     print("=== RUN QDRANT INGEST (400 -> Qdrant) ===")
@@ -73,9 +61,6 @@ def main():
             f"PROCESSED_PATH does not exist: {processed_root}"
         )
 
-    # -------------------------
-    # Connect to Qdrant
-    # -------------------------
     try:
         client = QdrantClient(
             host=QDRANT_HOST,
@@ -97,33 +82,30 @@ def main():
 
     ingested = skipped = failed = 0
 
-    # 400_embeddings: <domain>/<file_hash>/ hoặc (cũ) <file_hash>/
-    # Dùng nas_safe_* tránh Errno 35 (resource deadlock) trên NAS/volume chia sẻ
+    # 400_embeddings: <domain>/<file_hash>/ or (legacy) <file_hash>/
+    # Use nas_safe_* to avoid Errno 35 (resource deadlock) on NAS/shared volumes
     def iter_embeddings_entries():
         for entry in nas_safe_listdir(embeddings_root):
             if not nas_safe_is_dir(entry) or entry.name.startswith("."):
                 continue
             if nas_safe_exists(entry / "embedding.npy"):
-                yield entry  # cấu trúc cũ: embeddings_root/file_hash/
+                yield entry  # legacy: embeddings_root/file_hash/
             else:
                 for sub in nas_safe_listdir(entry):
                     if nas_safe_is_dir(sub) and nas_safe_exists(sub / "embedding.npy"):
-                        yield sub  # cấu trúc mới: embeddings_root/domain/file_hash/
+                        yield sub  # new: embeddings_root/domain/file_hash/
 
     emb_dirs = list(iter_embeddings_entries())
     print(f"[DEBUG] Found {len(emb_dirs)} embedding dirs")
 
     only_folders_set = set(only_folders) if only_folders else None
 
-    # -------------------------
-    # Iterate over embeddings
-    # -------------------------
     for emb_dir in emb_dirs:
         file_hash = emb_dir.name
         parent_name = emb_dir.parent.name if emb_dir.parent != embeddings_root else None
         rel_path = f"{parent_name}/{file_hash}" if parent_name else file_hash
 
-        # Lọc theo thư mục đã chọn trên cây: domain, domain/file_hash, hoặc file_hash (cấu trúc cũ)
+        # Filter by selected tree folder: domain, domain/file_hash, or file_hash (legacy)
         if only_folders_set is not None:
             if rel_path in only_folders_set:
                 pass
@@ -140,28 +122,24 @@ def main():
 
         print(f"\n[QDRANT] Processing {file_hash}")
 
-        # ---------- Skip: no embedding ----------
         if not nas_safe_exists(embeddings_file):
             print(f"[QDRANT][SKIP] No embedding.npy for {file_hash}")
             skipped += 1
             continue
 
         try:
-            # ---------- Load vectors (đọc từ NAS với retry) ----------
             vectors = nas_safe_load_npy(embeddings_file)
             if vectors.ndim != 2:
                 raise RuntimeError(
                     f"Invalid embedding shape for {file_hash}"
                 )
 
-            # ---------- Ensure collection ----------
             ensure_collection(
                 client=client,
                 vector_dim=vectors.shape[1],
                 collection_name=collection_name,
             )
 
-            # ---------- Ingest (truyền parent_name để tránh iterdir trên NAS) ----------
             count = ingest_file_embeddings(
                 client=client,
                 file_hash=file_hash,
@@ -183,9 +161,6 @@ def main():
                 f"[QDRANT][FAIL] {file_hash}: {exc}"
             )
 
-    # -------------------------
-    # Summary
-    # -------------------------
     print("\n=================================")
     print("QDRANT INGEST SUMMARY")
     print(f"Ingested : {ingested}")

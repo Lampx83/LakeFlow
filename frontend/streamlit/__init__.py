@@ -4,18 +4,18 @@ from typing import List, Tuple
 
 def list_dir(path: Path) -> Tuple[List[Path], List[Path]]:
     """
-    Liệt kê thư mục con và file trong một thư mục.
+    List subdirectories and files in a directory.
 
     Parameters
     ----------
     path : Path
-        Thư mục cần duyệt
+        Directory to traverse
 
     Returns
     -------
     (dirs, files) : tuple[list[Path], list[Path]]
-        - dirs  : danh sách thư mục (đã sort theo tên)
-        - files : danh sách file (đã sort theo tên)
+        - dirs  : list of directories (sorted by name)
+        - files : list of files (sorted by name)
     """
 
     if not path.exists():

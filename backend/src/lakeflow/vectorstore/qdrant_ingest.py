@@ -19,10 +19,6 @@ from lakeflow.common.nas_io import (
 from lakeflow.vectorstore.constants import COLLECTION_NAME
 
 
-# =====================================================
-# COLLECTION MANAGEMENT
-# =====================================================
-
 def ensure_collection(
     client: QdrantClient,
     vector_dim: int,
@@ -31,7 +27,7 @@ def ensure_collection(
     """
     Ensure Qdrant collection exists.
     If already exists → do nothing.
-    collection_name: tên collection; None = dùng COLLECTION_NAME mặc định.
+    collection_name: collection name; None = use default COLLECTION_NAME.
     """
     name = (collection_name or "").strip() or COLLECTION_NAME
 
@@ -48,10 +44,6 @@ def ensure_collection(
     )
 
 
-# =====================================================
-# INGEST EMBEDDINGS (FINAL, CORRECT VERSION)
-# =====================================================
-
 def ingest_file_embeddings(
     client: QdrantClient,
     file_hash: str,
@@ -63,12 +55,12 @@ def ingest_file_embeddings(
     """
     Ingest embeddings of one file into Qdrant.
 
-    parent_dir: tên domain (thư mục cha trong 400_embeddings); nếu có thì tránh iterdir trên NAS.
-    collection_name: tên collection; None = dùng COLLECTION_NAME mặc định.
+    parent_dir: domain name (parent dir in 400_embeddings); if set, avoids iterdir on NAS.
+    collection_name: collection name; None = use default COLLECTION_NAME.
 
     Source of truth:
-    - Vectors + meta: 400_embeddings/<domain>/<file_hash> hoặc 400_embeddings/<file_hash>
-    - Text chunks   : 300_processed/<domain>/<file_hash>/chunks.json hoặc 300_processed/<file_hash>/chunks.json
+    - Vectors + meta: 400_embeddings/<domain>/<file_hash> or 400_embeddings/<file_hash>
+    - Text chunks   : 300_processed/<domain>/<file_hash>/chunks.json or 300_processed/<file_hash>/chunks.json
 
     Returns
     -------
@@ -77,9 +69,6 @@ def ingest_file_embeddings(
     """
     coll_name = (collection_name or "").strip() or COLLECTION_NAME
 
-    # --------------------------------------------------
-    # Tìm processed_dir (có parent_dir thì không iterdir trên NAS)
-    # --------------------------------------------------
     processed_dir = nas_safe_find_processed_dir(processed_root, file_hash, parent_dir=parent_dir)
     if not processed_dir:
         raise FileNotFoundError(
@@ -90,9 +79,6 @@ def ingest_file_embeddings(
     meta_file = embeddings_dir / "chunks_meta.json"
     processed_chunks_file = processed_dir / "chunks.json"
 
-    # --------------------------------------------------
-    # Copy 3 file từ NAS sang temp local (trong container), rồi đọc từ temp — tránh Errno 35
-    # --------------------------------------------------
     with tempfile.TemporaryDirectory(prefix="qdrant_ingest_") as tmp:
         tmp = Path(tmp)
         tmp_embed = tmp / "embedding.npy"
@@ -112,18 +98,10 @@ def ingest_file_embeddings(
             f"{len(vectors)} vectors vs {len(chunks_meta)} meta"
         )
 
-    # --------------------------------------------------
-    # Build chunk_id → text map (SOURCE OF TRUTH)
-    # --------------------------------------------------
-
     chunk_text_map = {
         c["chunk_id"]: c.get("text", "")
         for c in chunks
     }
-
-    # --------------------------------------------------
-    # Build Qdrant points
-    # --------------------------------------------------
 
     points: List[PointStruct] = []
 
@@ -154,10 +132,6 @@ def ingest_file_embeddings(
                 payload=payload,
             )
         )
-
-    # --------------------------------------------------
-    # Upsert to Qdrant
-    # --------------------------------------------------
 
     client.upsert(
         collection_name=coll_name,

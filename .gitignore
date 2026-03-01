@@ -64,6 +64,13 @@ frontend/.venv/
 # ------------------------------
 qdrant_storage/
 /data/
+
+# datalake: track folder structure (.gitkeep only), ignore all files
+datalake/*
+!datalake/.gitkeep
+!datalake/*/
+datalake/*/*
+!datalake/*/.gitkeep
 *.sqlite
 *.sqlite3
 *.db

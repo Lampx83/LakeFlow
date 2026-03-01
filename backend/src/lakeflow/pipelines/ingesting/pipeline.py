@@ -19,7 +19,7 @@ def run_ingestion(
     allowed_domains = set(only_domains) if only_domains else None
     allowed_prefixes = [p.strip().rstrip("/") for p in (only_path_prefixes or []) if p.strip()]
 
-    # Chỉ quét thư mục được chọn (only_under); nếu không chọn thì quét toàn bộ
+    # Only scan selected directories (only_under); if empty, scan all
     for inbox_file in scan_inbox(inbox_root, only_under=allowed_prefixes if allowed_prefixes else None):
         if allowed_domains is not None and inbox_file.domain not in allowed_domains:
             continue

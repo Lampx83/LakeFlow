@@ -8,17 +8,17 @@ import requests
 from config.settings import API_BASE, DATA_ROOT
 from utils.sqlite_viewer import copy_db_to_temp
 
-# Bước nào dùng cây thư mục (chọn con/cháu); bước còn lại dùng danh sách phẳng (file_hash)
+# Which steps use directory tree (select children); others use flat list (file_hash)
 STEPS_WITH_TREE = ("step0", "step1", "step2", "step3", "step4")
 
 
 def get_pipeline_folder_children(step: str, relative_path: str = "") -> list[tuple[str, str]]:
     """
-    Trả về danh sách thư mục con: [(tên hiển thị, full_relative_path)].
-    Dùng để render cây thư mục cho step0..step4.
-    step2: 200_staging/<domain>/<file_hash>/ hoặc (cũ) 200_staging/<file_hash>/
-    step3: 300_processed/<domain>/<file_hash>/ hoặc (cũ) 300_processed/<file_hash>/
-    step4: 400_embeddings/<domain>/<file_hash>/ hoặc (cũ) 400_embeddings/<file_hash>/
+    Return list of child directories: [(display_name, full_relative_path)].
+    Used to render directory tree for step0..step4.
+    step2: 200_staging/<domain>/<file_hash>/ or (legacy) 200_staging/<file_hash>/
+    step3: 300_processed/<domain>/<file_hash>/ or (legacy) 300_processed/<file_hash>/
+    step4: 400_embeddings/<domain>/<file_hash>/ or (legacy) 400_embeddings/<file_hash>/
     """
     root = Path(DATA_ROOT)
     if step == "step0":
@@ -52,8 +52,8 @@ def get_pipeline_folder_children(step: str, relative_path: str = "") -> list[tup
 
 def get_pipeline_folder_files(step: str, relative_path: str = "") -> list[tuple[str, int]]:
     """
-    Trả về danh sách file trong thư mục: [(tên file, size_bytes)].
-    relative_path = "" là gốc zone; "domain" hoặc "domain/hash" là con.
+    Return list of files in directory: [(file_name, size_bytes)].
+    relative_path = "" is zone root; "domain" or "domain/hash" is child.
     """
     root = Path(DATA_ROOT)
     if step == "step0":
@@ -90,12 +90,12 @@ def get_pipeline_folder_files(step: str, relative_path: str = "") -> list[tuple[
 
 def get_pipeline_file_step_done(step: str, relative_path: str, file_name: str) -> str:
     """
-    Trả về "✓" nếu file (hoặc thư mục hiện tại) đã được xử lý xong ở bước này, "" nếu chưa, "?" nếu không xác định (vd. step4).
-    step0: file inbox → đã ingest (hash trong raw_objects)
-    step1: file trong 100_raw → đã staging (200_staging/.../validation.json)
-    step2: file trong 200_staging → đã processing (300_processed/.../chunks.json) — theo thư mục
-    step3: file trong 300_processed → đã embedding (400_embeddings/.../embedding.npy) — theo thư mục
-    step4: không có catalog → "?"
+    Return "✓" if file (or current directory) has been processed at this step, "" if not, "?" if unknown (e.g. step4).
+    step0: inbox file → ingested (hash in raw_objects)
+    step1: file in 100_raw → staged (200_staging/.../validation.json)
+    step2: file in 200_staging → processed (300_processed/.../chunks.json) — by directory
+    step3: file in 300_processed → embedded (400_embeddings/.../embedding.npy) — by directory
+    step4: no catalog → "?"
     """
     root = Path(DATA_ROOT)
     rel = relative_path.strip("/").replace("\\", "/")
@@ -144,7 +144,7 @@ def get_pipeline_file_step_done(step: str, relative_path: str, file_name: str) -
         return ""
 
     if step == "step2":
-        # Cả thư mục 200_staging/relative_path đã chạy bước 2 (→ 300_processed) chưa
+        # Has 200_staging/relative_path run step 2 (→ 300_processed) yet
         if not relative_path:
             return ""
         check = root / "300_processed" / relative_path / "chunks.json"
@@ -169,8 +169,8 @@ def get_pipeline_file_step_done(step: str, relative_path: str, file_name: str) -
 
 def _get_pipeline_folders_fallback(step: str) -> list[str]:
     """
-    Fallback: lấy danh sách thư mục từ DATA_ROOT (cùng cấu hình Data Lake Explorer).
-    Dùng khi backend chưa có API GET /pipeline/folders hoặc trả 404.
+    Fallback: get folder list from DATA_ROOT (same config as Data Lake Explorer).
+    Used when backend lacks GET /pipeline/folders API or returns 404.
     """
     root = Path(DATA_ROOT)
     out = []
@@ -201,7 +201,7 @@ def _get_pipeline_folders_fallback(step: str) -> list[str]:
 
 
 def get_pipeline_folders(step: str, token: Optional[str] = None) -> list[str]:
-    """Lấy danh sách thư mục có thể chọn cho bước pipeline (API, fallback từ DATA_ROOT nếu 404)."""
+    """Get selectable folder list for pipeline step (API, fallback from DATA_ROOT if 404)."""
     headers = {"Authorization": f"Bearer {token}"} if token else {}
     try:
         resp = requests.get(
@@ -220,7 +220,7 @@ def get_pipeline_folders(step: str, token: Optional[str] = None) -> list[str]:
 
 
 def list_qdrant_collections(token: Optional[str] = None) -> list[str]:
-    """Lấy danh sách tên collection có sẵn trong Qdrant (dùng cho bước Qdrant Indexing)."""
+    """Get list of collection names in Qdrant (for Qdrant Indexing step)."""
     headers = {"Authorization": f"Bearer {token}"} if token else {}
     try:
         resp = requests.get(
@@ -235,15 +235,28 @@ def list_qdrant_collections(token: Optional[str] = None) -> list[str]:
         return []
 
 
+def get_embed_models(token: Optional[str] = None) -> tuple[list[str], str]:
+    """Get list of embed models for step3. Returns (models, default_model)."""
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+    try:
+        resp = requests.get(f"{API_BASE}/pipeline/embed-models", headers=headers, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        return (data.get("models", []), data.get("default", "qwen3-embedding:8b"))
+    except Exception:
+        return (["qwen3-embedding:8b", "nomic-embed-text", "mxbai-embed-large", "all-minilm"], "qwen3-embedding:8b")
+
+
 def run_pipeline_step(
     step: str,
     only_folders: Optional[list[str]] = None,
     force_rerun: bool = False,
     collection_name: Optional[str] = None,
     qdrant_url: Optional[str] = None,
+    embed_model: Optional[str] = None,
     token: Optional[str] = None,
 ) -> dict:
-    """Chạy bước pipeline; only_folders = None hoặc [] = chạy toàn bộ; force_rerun = chạy lại kể cả đã làm; collection_name / qdrant_url = chỉ step4 (Qdrant)."""
+    """Run pipeline step; only_folders = None or [] = run all; force_rerun = rerun even if done; collection_name / qdrant_url = step4 only; embed_model = step3 only."""
     headers = {"Authorization": f"Bearer {token}"} if token else {}
     body = {}
     if only_folders:
@@ -254,6 +267,8 @@ def run_pipeline_step(
         body["collection_name"] = collection_name.strip()
     if step == "step4" and qdrant_url and qdrant_url.strip():
         body["qdrant_url"] = qdrant_url.strip()
+    if step == "step3" and embed_model and embed_model.strip():
+        body["embed_model"] = embed_model.strip()
     resp = requests.post(
         f"{API_BASE}/pipeline/run/{step}",
         json=body if body else None,

@@ -6,7 +6,7 @@ url = OLLAMA_EMBED_URL
 
 payload = {
     "model": EMBED_MODEL,
-    "input": ["Xin chào"]
+    "input": ["Hello"]
 }
 
 resp = requests.post(url, json=payload)

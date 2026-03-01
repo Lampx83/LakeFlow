@@ -2,6 +2,8 @@
 
 **Data Lake pipelines for Vector DB & AI.** Ingest raw documents, run staged pipelines, and produce embeddings + semantic search—ready for RAG, LLM, and analytics.
 
+**Website:** [https://lake-flow.vercel.app](https://lake-flow.vercel.app) — full documentation, getting started, API reference, and deployment guides.
+
 [![CI](https://github.com/Lampx83/EDUAI/actions/workflows/ci.yml/badge.svg)](https://github.com/Lampx83/EDUAI/actions/workflows/ci.yml)
 
 ---
@@ -39,7 +41,7 @@ All components run via **Docker** by default—no need to install Python or heav
 git clone https://github.com/Lampx83/EDUAI.git LakeFlow
 cd LakeFlow
 cp .env.example .env
-# Edit .env: set LAKEFLOW_DATA_BASE_PATH to a directory that will hold the data lake (or leave /data for Docker volume)
+# Edit .env: set LAKE_ROOT to a directory that will hold the data lake (or leave /data for Docker volume)
 docker compose up --build
 ```
 
@@ -49,8 +51,8 @@ docker compose up --build
 
 Data lake root is the `lakeflow_data` volume (or path you set). Create zones manually if needed: `000_inbox`, `100_raw`, `200_staging`, `300_processed`, `400_embeddings`, `500_catalog`.
 
-**Docker build (server không GPU):** Image backend mặc định dùng **PyTorch CPU-only** (không kéo CUDA/nvidia-* ~2GB), build nhanh. Cần `DOCKER_BUILDKIT=1` (GitHub Actions và deploy script đã set). Build local: `DOCKER_BUILDKIT=1 docker compose up --build`.  
-**Mac M1 dev dùng GPU (Metal/MPS):** Trong Docker container chạy Linux nên không dùng được Metal. Để tận dụng GPU trên MacBook M1, chạy backend **bằng venv trên macOS** (xem mục Development bên dưới): `pip install torch` rồi `pip install -r requirements.txt` → PyTorch sẽ dùng MPS.
+**Docker build (server without GPU):** Backend image defaults to **PyTorch CPU-only** (no CUDA/nvidia-* ~2GB), fast build. Requires `DOCKER_BUILDKIT=1` (GitHub Actions and deploy script already set). Local build: `DOCKER_BUILDKIT=1 docker compose up --build`.  
+**Mac M1 dev with GPU (Metal/MPS):** Docker container runs Linux so Metal is not available. To use GPU on MacBook M1, run backend **via venv on macOS** (see Development section below): `pip install torch` then `pip install -r requirements.txt` → PyTorch will use MPS.
 
 ---
 
@@ -65,6 +67,7 @@ LakeFlow/
 ├── frontend/
 │   └── streamlit/     # Streamlit control UI
 │       └── README.md
+├── website/           # Next.js docs site → https://lake-flow.vercel.app
 ├── docker-compose.yml
 ├── .env.example
 └── README.md
@@ -78,12 +81,12 @@ Copy `.env.example` to `.env` and adjust:
 
 | Variable | Description |
 |----------|-------------|
-| `LAKEFLOW_DATA_BASE_PATH` | Root path for the data lake (e.g. `/data` in Docker, or a host path) |
+| `LAKE_ROOT` | Root path for the data lake (e.g. `/data` in Docker, or a host path) |
 | `LAKEFLOW_MODE` | `DEV` = show Pipeline Runner in UI; omit or other = hide |
 | `QDRANT_HOST` | Qdrant host (e.g. `lakeflow-qdrant` in Docker, `localhost` when running Qdrant alone) |
 | `API_BASE_URL` | Backend URL (e.g. `http://lakeflow-backend:8011` in Docker, `http://localhost:8011` for local dev) |
-| `LLM_BASE_URL` | URL Ollama/LLM cho Q&A và **Admission agent**. **Máy chạy LakeFlow phải kết nối được tới URL này.** Nếu lỗi "No route to host" khi chat Admission → dùng Ollama nội bộ (vd. `http://host:11434`). |
-| `LLM_MODEL` | Tên model (mặc định `qwen3:8b`) |
+| `LLM_BASE_URL` | URL for Ollama/LLM for Q&A and **Admission agent**. **The machine running LakeFlow must be able to connect to this URL.** If "No route to host" when chatting Admission → use internal Ollama (e.g. `http://host:11434`). |
+| `LLM_MODEL` | Model name (default `qwen3:8b`) |
 
 See `.env.example` for a full template.
 
@@ -91,15 +94,15 @@ See `.env.example` for a full template.
 
 ## Development (without Docker)
 
-1. **Backend** (from repo root). **Mac M1:** cài `torch` trước để dùng GPU Metal (MPS), rồi mới cài requirements.
+1. **Backend** (from repo root). **Mac M1:** install `torch` first for GPU Metal (MPS), then install requirements.
    ```bash
    cd backend
    python3 -m venv .venv
    source .venv/bin/activate   # Windows: .venv\Scripts\activate
-   # Mac M1: cài torch trước → PyTorch dùng GPU Metal (MPS)
+   # Mac M1: install torch first → PyTorch uses GPU Metal (MPS)
    pip install torch
    pip install -r requirements.txt && pip install -e .
-   # Ensure .env is in repo root with LAKEFLOW_DATA_BASE_PATH, QDRANT_HOST, API_BASE_URL
+   # Ensure .env is in repo root with LAKE_ROOT, QDRANT_HOST, API_BASE_URL
    python -m uvicorn lakeflow.main:app --reload --port 8011
    ```
 2. **Qdrant** (if needed): `docker compose up -d qdrant`
@@ -116,7 +119,7 @@ Pipeline Runner in the UI is only shown when `LAKEFLOW_MODE=DEV`.
 - **Embed:** `POST /search/embed` — body `{"text": "..."}` → returns `vector` / `embedding` and `dim`
 - **Semantic search:** `POST /search/semantic` — body `{"query": "...", "top_k": 5}` (optional `qdrant_url`, `collection_name`)
 
-See [backend/README.md](backend/README.md) and [backend/docs/API_EMBED.md](backend/docs/API_EMBED.md) for details.
+See [backend/README.md](backend/README.md) and [backend/docs/API_EMBED.md](backend/docs/API_EMBED.md) for details. Full docs: [lake-flow.vercel.app/docs](https://lake-flow.vercel.app/docs).
 
 ---
 
@@ -124,8 +127,8 @@ See [backend/README.md](backend/README.md) and [backend/docs/API_EMBED.md](backe
 
 - **CI** (`.github/workflows/ci.yml`): On push/PR to `main` or `develop` — lint (Ruff) and Docker build for backend and frontend.
 - **CD** (`.github/workflows/cd.yml`): On release (tag) — build and push images to GitHub Container Registry.
-- **Push to Docker Hub** (`.github/workflows/push-dockerhub.yml`): On push to `main` (khi có thay đổi `lake-flow/` hoặc `lake-flow-ui/`) — build và đẩy `lakeflow-backend:latest`, `lakeflow-frontend:latest` lên Docker Hub. Cần secrets: `DOCKERHUB_USER`, `DOCKERHUB_TOKEN`.
-- **PyPI** (`.github/workflows/publish-pypi.yml`): On GitHub Release — publish package `lake-flow-pipeline` from the `lake-flow/` directory. See [docs/PUBLISH-PYPI.md](docs/PUBLISH-PYPI.md). Frontend is packaged separately: `lake-flow-ui/` (package `lakeflow-ui`).
+- **Push to Docker Hub** (`.github/workflows/push-dockerhub.yml`): On push to `main` (when `backend/` or `frontend/` changes) — build and push `lakeflow-backend:latest`, `lakeflow-frontend:latest` to Docker Hub. Requires secrets: `DOCKERHUB_USER`, `DOCKERHUB_TOKEN`.
+- **PyPI** (`.github/workflows/publish-pypi.yml`): On GitHub Release — publish package `lake-flow-pipeline` from the `backend/` directory. See [docs/PUBLISH-PYPI.md](docs/PUBLISH-PYPI.md). Frontend package `lakeflow-ui` from `frontend/streamlit/`.
 
 Do not commit `.env`; use `.env.example` as reference.
 
@@ -135,34 +138,34 @@ Do not commit `.env`; use `.env.example` as reference.
 
 ### Portainer Stack
 
-**Portainer không hỗ trợ `build`** trong stack → dùng **image đã push sẵn** lên Docker Hub.
+**Portainer does not support `build`** in stack → use **pre-pushed images** on Docker Hub.
 
-1. **Build và push** (chạy trên máy có Docker):
+1. **Build and push** (run on machine with Docker):
    ```bash
    cd LakeFlow
    export DOCKERHUB_USER=your-username
-   docker build -t $DOCKERHUB_USER/lakeflow-backend:latest ./lake-flow
-   docker build -t $DOCKERHUB_USER/lakeflow-frontend:latest ./lake-flow-ui
+   docker build -t $DOCKERHUB_USER/lakeflow-backend:latest ./backend
+   docker build -t $DOCKERHUB_USER/lakeflow-frontend:latest ./frontend/streamlit
    docker push $DOCKERHUB_USER/lakeflow-backend:latest
    docker push $DOCKERHUB_USER/lakeflow-frontend:latest
    ```
-2. **Portainer:** Stacks → Add stack → Web editor → paste nội dung `portainer-stack.yml`.
-3. **Env vars** trong Portainer: `DOCKERHUB_USER`, và các biến cần thiết từ `.env.example` (vd. `LAKEFLOW_DATA_BASE_PATH`, `QDRANT_HOST`).
+2. **Portainer:** Stacks → Add stack → Web editor → paste contents of `portainer-stack.yml`.
+3. **Env vars** in Portainer: `DOCKERHUB_USER`, and required vars from `.env.example` (e.g. `LAKE_ROOT`, `QDRANT_HOST`).
 
-Xem `portainer-stack.yml` trong thư mục LakeFlow.
+See `portainer-stack.yml` in the LakeFlow directory.
 
-### Chạy thủ công trên server
+### Manual run on server
 
-- Chạy trên VPS, on-prem hoặc cloud (AWS, GCP, Azure).
-- Trên server: cấu hình `.env` rồi chạy `docker compose up -d` (hoặc dùng override deploy: `docker compose -f docker-compose.yml -f docker-compose.deploy.yml up -d --build`).
+- Run on VPS, on-prem or cloud (AWS, GCP, Azure).
+- On server: configure `.env` then run `docker compose up -d` (or use deploy override: `docker compose -f docker-compose.yml -f docker-compose.deploy.yml up -d --build`).
 
-### Deploy tự động mỗi khi push lên `main`
+### Auto deploy on push to `main`
 
-Workflow `.github/workflows/deploy.yml` sẽ SSH vào server Ubuntu, `git pull` và chạy `docker compose` mỗi khi có push lên nhánh `main`.
+Workflow `.github/workflows/deploy.yml` will SSH into Ubuntu server, `git pull` and run `docker compose` on each push to `main` branch.
 
-#### Bước 1 – Trên server Ubuntu (chỉ làm một lần)
+#### Step 1 – On Ubuntu server (one-time setup)
 
-1. **Cài Docker và Docker Compose**
+1. **Install Docker and Docker Compose**
    ```bash
    sudo apt-get update && sudo apt-get install -y ca-certificates curl
    sudo install -m 0755 -d /etc/apt/keyrings
@@ -172,51 +175,60 @@ Workflow `.github/workflows/deploy.yml` sẽ SSH vào server Ubuntu, `git pull` 
    sudo apt-get update && sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
    sudo usermod -aG docker $USER
    ```
-   Đăng xuất/đăng nhập lại (hoặc `newgrp docker`) rồi kiểm tra: `docker compose version`.
+   Log out and back in (or `newgrp docker`) then verify: `docker compose version`.
 
-2. **Clone repo** (dùng user sẽ dùng để SSH deploy, ví dụ `ubuntu` hoặc `deploy`)
+2. **Clone repo** (use user for SSH deploy, e.g. `ubuntu` or `deploy`)
    ```bash
    cd ~
    git clone https://github.com/Lampx83/lakeflow.git
    cd lakeflow
    ```
 
-3. **Tạo file `.env`** (không commit file này)
+3. **Create `.env` file** (do not commit this file)
    ```bash
    cp .env.example .env
    nano .env
    ```
-   Điền ít nhất: `LAKEFLOW_DATA_BASE_PATH=/data`, `QDRANT_HOST=lakeflow-qdrant`, `API_BASE_URL=http://lakeflow-backend:8011` (frontend trong Docker gọi backend qua tên service; không dùng IP server ở đây).
+   Fill at least: `LAKE_ROOT=/data`, `QDRANT_HOST=lakeflow-qdrant`, `API_BASE_URL=http://lakeflow-backend:8011` (frontend in Docker calls backend via service name; do not use server IP here).
 
-4. **SSH key để GitHub Actions đẩy code**
-   - Trên server tạo key (nếu chưa có): `ssh-keygen -t ed25519 -C "deploy" -f ~/.ssh/deploy_lakeflow -N ""`
-   - Thêm public key vào `~/.ssh/authorized_keys`: `cat ~/.ssh/deploy_lakeflow.pub >> ~/.ssh/authorized_keys`
-   - Lấy **nội dung private key** để dán vào GitHub Secret: `cat ~/.ssh/deploy_lakeflow` (copy toàn bộ kể cả dòng BEGIN/END).
+4. **SSH key for GitHub Actions to push code**
+   - On server create key (if not exists): `ssh-keygen -t ed25519 -C "deploy" -f ~/.ssh/deploy_lakeflow -N ""`
+   - Add public key to `~/.ssh/authorized_keys`: `cat ~/.ssh/deploy_lakeflow.pub >> ~/.ssh/authorized_keys`
+   - Get **private key content** to paste into GitHub Secret: `cat ~/.ssh/deploy_lakeflow` (copy entire content including BEGIN/END lines).
 
-#### Bước 2 – Trong GitHub repo
+#### Step 2 – In GitHub repo
 
-Vào **Settings → Secrets and variables → Actions**, thêm **Actions secrets**:
+Go to **Settings → Secrets and variables → Actions**, add **Actions secrets**:
 
-| Secret | Bắt buộc | Mô tả |
-|--------|----------|--------|
-| `DEPLOY_HOST` | Có | IP hoặc hostname server (vd. `123.45.67.89` hoặc `myserver.com`) |
-| `DEPLOY_USER` | Có | User SSH (vd. `ubuntu`) |
-| `SSH_PRIVATE_KEY` | Có | Toàn bộ nội dung file private key (deploy_lakeflow) |
-| `DEPLOY_REPO_DIR` | Không | Thư mục chứa repo trên server; mặc định `~/lakeflow` |
-| `DEPLOY_SSH_PORT` | Không | Cổng SSH; mặc định `22`. **Nếu server dùng cổng khác (vd. 8901) thì bắt buộc thêm secret này.** |
-| `OPENAI_API_KEY` | Không | Q&A mặc định dùng Ollama (Research). Nếu khai báo, dùng OpenAI cho Q&A và workflow ghi vào `.env` trên server. |
+| Secret | Required | Description |
+|--------|----------|-------------|
+| `DEPLOY_HOST` | Yes | Server IP or hostname (e.g. `123.45.67.89` or `myserver.com`) |
+| `DEPLOY_USER` | Yes | SSH user (e.g. `ubuntu`) |
+| `SSH_PRIVATE_KEY` | Yes | Full content of private key file (deploy_lakeflow) |
+| `DEPLOY_REPO_DIR` | No | Repo directory on server; default `~/lakeflow` |
+| `DEPLOY_SSH_PORT` | No | SSH port; default `22`. **If server uses different port (e.g. 8901) this secret is required.** |
+| `OPENAI_API_KEY` | No | Q&A defaults to Ollama (Research). If set, use OpenAI for Q&A and workflow writes to `.env` on server. |
 
-Sau khi lưu secrets, mỗi lần bạn **push lên `main`**, workflow **Deploy** sẽ chạy: SSH vào server → `cd <DEPLOY_REPO_DIR>` → `git pull origin main` → `docker compose -f docker-compose.yml -f docker-compose.deploy.yml up -d --build`.
+After saving secrets, each time you **push to `main`**, the **Deploy** workflow will run: SSH into server → `cd <DEPLOY_REPO_DIR>` → `git pull origin main` → `docker compose -f docker-compose.yml -f docker-compose.deploy.yml up -d --build`.
 
-- **Lưu ý:** Trên server cần cấu hình Git (nếu clone bằng HTTPS thì `git pull` không cần key; nếu clone bằng SSH thì server cần có deploy key hoặc dùng HTTPS).
-- **Data:** Deploy dùng bind mount **`/datalake/research`** trên server làm data lake. Trên server cần tạo sẵn thư mục (vd. `sudo mkdir -p /datalake/research && sudo chown $USER:$USER /datalake/research`). Nếu dùng team share, mount nó tại `/datalake/research`.
-- **Lỗi mount "SynologyDrive" / "no such file or directory":** Nếu volume cũ vẫn trỏ path Mac, trên server chạy **một lần** rồi push lại:
+- **Note:** Server needs Git configured (if clone via HTTPS then `git pull` needs no key; if clone via SSH then server needs deploy key or use HTTPS).
+- **Data:** Deploy uses bind mount **`/datalake/research`** on server as data lake. Create directory on server (e.g. `sudo mkdir -p /datalake/research && sudo chown $USER:$USER /datalake/research`). For team share, mount it at `/datalake/research`.
+- **Mount error "SynologyDrive" / "no such file or directory":** If old volume still points to Mac path, on server run **once** then push again:
   ```bash
   cd ~/lakeflow
   docker compose -f docker-compose.yml -f docker-compose.deploy.yml down -v
   ```
-  Lần deploy tiếp theo sẽ tạo volume mới gắn với `/datalake/research`. Dữ liệu cũ trong volume bị xóa khi `down -v`.
-- **Login báo "Connection refused" (lakeflow-backend:8011):** Frontend chỉ start sau khi backend healthy. Nếu vẫn lỗi: (1) Kiểm tra `.env` trên server có `API_BASE_URL=http://lakeflow-backend:8011`; (2) Xem log backend: `docker logs lakeflow-backend` (backend crash sẽ không lên được /health).
+  Next deploy will create new volume attached to `/datalake/research`. Old data in volume is removed when `down -v`.
+- **Login shows "Connection refused" (lakeflow-backend:8011):** Frontend starts only after backend is healthy. If still failing: (1) Check server `.env` has `API_BASE_URL=http://lakeflow-backend:8011`; (2) View backend log: `docker logs lakeflow-backend` (backend crash will not reach /health).
+
+---
+
+## Links
+
+| Resource | URL |
+|----------|-----|
+| **Website & Docs** | [https://lake-flow.vercel.app](https://lake-flow.vercel.app) |
+| **PyPI** | [lake-flow-pipeline](https://pypi.org/project/lake-flow-pipeline/) |
 
 ---
 

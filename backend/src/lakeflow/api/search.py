@@ -15,6 +15,7 @@ from lakeflow.api.schemas.search import (
 from lakeflow.common.text_normalizer import canonicalize_text
 from lakeflow.services.ollama_embed_service import embed_batch, OLLAMA_EMBED_URL, EMBED_MODEL
 from lakeflow.core.auth import verify_token
+from lakeflow.i18n import i18n_detail
 from lakeflow.catalog.app_db import insert_message
 from lakeflow.vectorstore.constants import COLLECTION_NAME as DEFAULT_COLLECTION_NAME
 from lakeflow.core.config import get_qdrant_url, LLM_BASE_URL, LLM_MODEL, OPENAI_API_KEY
@@ -29,8 +30,8 @@ router = APIRouter(
 @router.post(
     "/embed",
     response_model=EmbedResponse,
-    summary="Vector hóa chuỗi",
-    description="Trả về vector embedding của một chuỗi (dùng cùng model với semantic search).",
+    summary="Vectorize string",
+    description="Return vector embedding of a string (uses same model as semantic search).",
 )
 def embed_text(req: EmbedRequest) -> dict:
     vector = embed_batch([req.text])[0]
@@ -48,19 +49,12 @@ def embed_text(req: EmbedRequest) -> dict:
 )
 def semantic_search(req: SemanticSearchRequest):
     """
-    Semantic search dùng Qdrant REST API (requests)
+    Semantic search using Qdrant REST API (requests).
     """
 
-    # --------------------------------------------------
-    # 1. Embed query
-    # --------------------------------------------------
-    
     expanded_query = canonicalize_text(req.query)
     query_vector = embed_batch([expanded_query])[0]
 
-    # --------------------------------------------------
-    # 2. Call Qdrant REST API
-    # --------------------------------------------------
     base = get_qdrant_url(req.qdrant_url)
     coll = (req.collection_name or DEFAULT_COLLECTION_NAME).strip() or DEFAULT_COLLECTION_NAME
     url = f"{base}/collections/{coll}/points/search"
@@ -85,10 +79,6 @@ def semantic_search(req: SemanticSearchRequest):
         raise RuntimeError(f"Qdrant search failed: {exc}")
 
     data = resp.json()
-
-    # --------------------------------------------------
-    # 3. Parse response
-    # --------------------------------------------------
     points = data.get("result", [])
 
     results = []
@@ -112,7 +102,7 @@ def semantic_search(req: SemanticSearchRequest):
 
 
 def _curl_multiline(url: str, payload_obj: dict, *, auth: bool = False) -> str:
-    """Tạo lệnh curl đa dòng: curl URL \\ -H ... \\ -d '{...}'"""
+    """Build multiline curl command: curl URL \\ -H ... \\ -d '{...}'"""
     payload = json.dumps(payload_obj, ensure_ascii=False, indent=2)
     payload_escaped = payload.replace("'", "'\"'\"'")
     lines = [f"curl '{url}' \\", '  -H "Content-Type: application/json" \\']
@@ -136,7 +126,7 @@ def _curl_search(qdrant_base: str, coll: str, vector: list, top_k: int, score_th
 
 
 def _curl_complete(messages: list, temperature: float, max_tokens: int) -> str:
-    """Curl complete: format chuẩn, khớp endpoint backend đang dùng."""
+    """Curl complete: standard format, matches backend endpoint in use."""
     base = LLM_BASE_URL.rstrip("/")
     if USE_OLLAMA_NATIVE_CHAT:
         url = f"{base}/api/chat"
@@ -163,26 +153,27 @@ def _curl_complete(messages: list, temperature: float, max_tokens: int) -> str:
 )
 def qa(req: QARequest, auth_payload: dict = Depends(verify_token)):
     """
-    Q&A với RAG: Tìm context từ semantic search, sau đó dùng LLM để trả lời.
-    Tin nhắn (câu hỏi) được ghi theo username để thống kê trong Admin.
-    Trả về debug_info gồm curl commands và tiến độ các bước.
+    Q&A with RAG: Find context from semantic search, then use LLM to answer.
+    Messages (questions) are recorded by username for Admin statistics.
+    Returns debug_info with curl commands and step progress.
     """
     steps_done: list[str] = []
     curl_embed = _curl_embed(req.question)
 
-    # --------------------------------------------------
-    # 1. Embed query (vector hóa câu hỏi)
-    # --------------------------------------------------
     expanded_query = canonicalize_text(req.question)
     try:
         query_vector = embed_batch([expanded_query])[0]
     except (RuntimeError, requests.RequestException) as exc:
         raise HTTPException(
             status_code=500,
-            detail=f"Bước 1 (Embed) thất bại. Curl để test:\n{curl_embed}\n\nLỗi: {exc}"
+            detail=i18n_detail(
+                "search.step1_failed",
+                curl=curl_embed,
+                error=str(exc),
+            ),
         )
 
-    steps_done.append("1. Embed câu hỏi (Ollama)")
+    steps_done.append("1. Embed question (Ollama)")
     base = get_qdrant_url(req.qdrant_url)
     coll = (req.collection_name or DEFAULT_COLLECTION_NAME).strip() or DEFAULT_COLLECTION_NAME
     url = f"{base}/collections/{coll}/points/search"
@@ -207,17 +198,21 @@ def qa(req: QARequest, auth_payload: dict = Depends(verify_token)):
     except requests.RequestException as exc:
         raise HTTPException(
             status_code=500,
-            detail=f"Bước 2 (Qdrant Search) thất bại. Curl để test:\n{curl_search}\n\nLỗi: {exc}"
+            detail=i18n_detail(
+                "search.step2_failed",
+                curl=curl_search,
+                error=str(exc),
+            ),
         )
 
-    steps_done.append("2. Tìm context (Qdrant)")
+    steps_done.append("2. Find context (Qdrant)")
     data = resp.json()
     points = data.get("result", [])
 
     if not points:
         raise HTTPException(
             status_code=404,
-            detail=f"Bước 2 hoàn thành nhưng không tìm thấy context. Curl đã chạy:\n{curl_search}\n\nKhông tìm thấy document nào phù hợp."
+            detail=i18n_detail("search.step2_no_context", curl=curl_search),
         )
 
     # Parse context results
@@ -241,30 +236,27 @@ def qa(req: QARequest, auth_payload: dict = Depends(verify_token)):
         if context_text:
             context_texts.append(context_text)
     
-    # --------------------------------------------------
-    # 2. Build prompt với context
-    # --------------------------------------------------
     context_block = "\n\n".join([
         f"[Context {i+1}]:\n{text}"
         for i, text in enumerate(context_texts)
     ])
     
-    system_prompt = """Bạn đang tham gia một demo RAG (Retrieval-Augmented Generation). Nhiệm vụ của bạn là trả lời câu hỏi CHỈ dựa trên các đoạn tài liệu (context) được cung cấp bên dưới.
+    system_prompt = """You are participating in a RAG (Retrieval-Augmented Generation) demo. Your task is to answer the question ONLY based on the document excerpts (context) provided below.
 
-QUY TẮC BẮT BUỘC:
-- Chỉ được trả lời dựa trên nội dung trong context. Không dùng kiến thức bên ngoài, không suy đoán thêm.
-- Nếu câu trả lời có trong context: trích dẫn hoặc tóm tắt từ context một cách chính xác, trả lời bằng tiếng Việt.
-- Nếu context không chứa thông tin để trả lời câu hỏi: hãy nói rõ "Theo các tài liệu được cung cấp, không có thông tin để trả lời câu hỏi này." và không bịa đáp án.
-- Trả lời ngắn gọn, rõ ràng, bằng tiếng Việt."""
+MANDATORY RULES:
+- Answer only based on the content in the context. Do not use external knowledge, do not speculate.
+- If the answer is in the context: quote or summarize from the context accurately. Answer in the same language as the question.
+- If the context does not contain information to answer the question: clearly state "According to the documents provided, there is no information to answer this question." Do not make up answers.
+- Answer concisely and clearly."""
 
-    user_prompt = f"""Các đoạn tài liệu (context) dùng để trả lời — CHỈ dựa vào đây:
+    user_prompt = f"""Document excerpts (context) to use for answering — rely ONLY on this:
 
 {context_block}
 
 ---
-Câu hỏi: {req.question}
+Question: {req.question}
 
-Trả lời (chỉ dựa trên context trên):"""
+Answer (based only on the context above):"""
 
     messages = [
         {"role": "system", "content": system_prompt},
@@ -272,9 +264,6 @@ Trả lời (chỉ dựa trên context trên):"""
     ]
     curl_complete = _curl_complete(messages, req.temperature, 1000)
 
-    # --------------------------------------------------
-    # 3. Gọi LLM (OpenAI-compatible hoặc native Ollama /api/chat)
-    # --------------------------------------------------
     try:
         answer, model_used = chat_completion(
             messages=messages,
@@ -284,21 +273,28 @@ Trả lời (chỉ dựa trên context trên):"""
     except requests.RequestException as exc:
         raise HTTPException(
             status_code=500,
-            detail=f"Bước 3 (LLM Complete) thất bại. Curl để test:\n{curl_complete}\n\nLỗi: {exc}",
+            detail=i18n_detail(
+                "search.step3_failed",
+                curl=curl_complete,
+                error=str(exc),
+            ),
         )
     except (KeyError, IndexError) as exc:
         raise HTTPException(
             status_code=500,
-            detail=f"Bước 3 (LLM Complete) — phản hồi không hợp lệ. Curl đã chạy:\n{curl_complete}\n\nLỗi: {exc}",
+            detail=i18n_detail(
+                "search.step3_invalid_response",
+                curl=curl_complete,
+                error=str(exc),
+            ),
         )
 
-    steps_done.append("3. Gọi LLM (Complete)")
+    steps_done.append("3. Call LLM (Complete)")
 
-    # Ghi tin nhắn theo user (để thống kê / xóa trong Admin)
     try:
         insert_message(username=auth_payload["sub"], question=req.question)
     except Exception:
-        pass  # Không làm fail request Q&A nếu ghi DB lỗi
+        pass  # Do not fail Q&A request if DB write fails
 
     return {
         "question": req.question,

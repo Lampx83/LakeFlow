@@ -3,7 +3,7 @@ from config.settings import API_BASE
 
 
 def get_data_path_from_api() -> str | None:
-    """Lấy Data Lake root path từ backend (đúng với LAKEFLOW_DATA_BASE_PATH backend đang dùng)."""
+    """Get Data Lake root path from backend (matches LAKE_ROOT backend uses)."""
     try:
         resp = requests.get(f"{API_BASE}/system/data-path", timeout=5)
         if resp.status_code == 200:
@@ -26,7 +26,7 @@ def login(username: str, password: str) -> str | None:
 
 
 def get_me(token: str) -> dict | None:
-    """Lấy thông tin user hiện tại (username) từ token. Dùng để lọc lịch sử theo tài khoản."""
+    """Get current user info (username) from token. Used to filter history per account."""
     resp = requests.get(
         f"{API_BASE}/auth/me",
         headers={"Authorization": f"Bearer {token}"},
@@ -38,7 +38,7 @@ def get_me(token: str) -> dict | None:
 
 
 def admin_list_users(token: str) -> list[dict]:
-    """Danh sách user kèm số tin nhắn (Admin). Mỗi item: {username, message_count}."""
+    """List users with message count (Admin). Each item: {username, message_count}."""
     resp = requests.get(
         f"{API_BASE}/admin/users",
         headers={"Authorization": f"Bearer {token}"},
@@ -49,7 +49,7 @@ def admin_list_users(token: str) -> list[dict]:
 
 
 def admin_delete_user_messages(username: str, token: str) -> dict:
-    """Xóa toàn bộ tin nhắn của một user (chỉ admin). Trả về {username, deleted_count}."""
+    """Delete all messages for a user (admin only). Returns {username, deleted_count}."""
     resp = requests.delete(
         f"{API_BASE}/admin/users/{username}/messages",
         headers={"Authorization": f"Bearer {token}"},

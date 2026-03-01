@@ -1,9 +1,9 @@
 """
 Central constants for Vector Store (Qdrant).
 
-Mục tiêu:
-- Tránh hard-code rải rác COLLECTION_NAME
-- Đảm bảo toàn hệ thống dùng chung một nguồn
+Goals:
+- Avoid scattered hard-coded COLLECTION_NAME
+- Ensure entire system uses single source
 """
 
 COLLECTION_NAME = "Admission_2026"

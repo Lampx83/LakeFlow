@@ -11,8 +11,8 @@ import pandas as pd
 
 def copy_db_to_temp(db_path: Path, max_retries: int = 3) -> Path:
     """
-    Copy SQLite DB to temp local — tránh Errno 35 (resource deadlock) khi đọc từ
-    NAS/Docker volume chia sẻ (backend và frontend cùng truy cập).
+    Copy SQLite DB to temp local — avoids Errno 35 (resource deadlock) when reading from
+    shared NAS/Docker volume (backend and frontend both access).
     """
     db_path = Path(db_path).resolve()
     try:

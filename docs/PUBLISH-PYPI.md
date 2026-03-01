@@ -16,7 +16,7 @@ The package is published to [PyPI](https://pypi.org/project/lake-flow-pipeline/)
 
 1. Register on PyPI (if you don't have an account yet).
 2. Create a project on PyPI and configure **Trusted Publisher** (no API token needed).
-3. Update the version in `lake-flow/pyproject.toml` for each release.
+3. Update the version in `backend/pyproject.toml` for each release.
 4. Create a tag and **GitHub Release** → the workflow will build and push to PyPI.
 5. Verify: `pipx run lake-flow-pipeline init`.
 
@@ -34,7 +34,7 @@ The package is published to [PyPI](https://pypi.org/project/lake-flow-pipeline/)
 ### 2.1. Create a new project (first time only)
 
 1. Log in to PyPI → **Your projects** → **Add new project**.
-2. **Project name:** `lake-flow-pipeline` (must match `name` in `lake-flow/pyproject.toml`).
+2. **Project name:** `lake-flow-pipeline` (must match `name` in `backend/pyproject.toml`).
 3. You can leave the description empty and **Create**; the first publish will push metadata from `pyproject.toml`.
 
 ### 2.2. Configure Trusted Publisher (no API token needed)
@@ -53,7 +53,7 @@ Documentation: [PyPI – Trusted publishers](https://docs.pypi.org/trusted-publi
 
 ## Step 3: Version in pyproject.toml
 
-For each new release, update the version in **`LakeFlow/lake-flow/pyproject.toml`** to match the tag you will create:
+For each new release, update the version in **`LakeFlow/backend/pyproject.toml`** to match the tag you will create:
 
 ```toml
 [project]
@@ -73,7 +73,7 @@ Commit and push to the branch (e.g. `main`) **before** creating the Release.
 4. Release description (optional).
 5. Click **Publish release**.
 
-The **Publish to PyPI** workflow (`.github/workflows/publish-pypi.yml`) will run: build the package from the `lake-flow/` directory and push to PyPI. If the version already exists, the publish step is skipped (`skip-existing: true`).
+The **Publish to PyPI** workflow (`.github/workflows/publish-pypi.yml`) will run: build the package from the `backend/` directory and push to PyPI. If the version already exists, the publish step is skipped (`skip-existing: true`).
 
 ---
 
@@ -98,7 +98,7 @@ File **`.github/workflows/publish-pypi.yml`**:
 
 - **Trigger:** when you create a **GitHub Release** (event `release`, type `published`).
 - **Publish method:** uses [Trusted Publishing (OIDC)](https://docs.pypi.org/trusted-publishers/) — no need to configure `PYPI_API_TOKEN` in GitHub Secrets.
-- **Package directory:** `lake-flow/` (contains `pyproject.toml` and `src/lakeflow/`).
+- **Package directory:** `backend/` (contains `pyproject.toml` and `src/lakeflow/`).
 - **Skip existing:** `skip-existing: true` is enabled so the workflow does not fail when the version already exists on PyPI.
 
 ---
@@ -108,7 +108,7 @@ File **`.github/workflows/publish-pypi.yml`**:
 Follow [Packaging Python Projects (PyPA)](https://packaging.python.org/en/latest/tutorials/packaging-projects/): build with `build`, upload with `twine`.
 
 ```bash
-cd LakeFlow/lake-flow
+cd LakeFlow/backend
 pip install --upgrade build twine
 python -m build
 twine upload dist/*
@@ -119,7 +119,7 @@ When prompted, use **username:** `__token__` and **password:** API token from **
 **Upload to real PyPI (pypi.org) with API token:** Create the token at [pypi.org/manage/account/](https://pypi.org/manage/account/) → **API tokens** → Add API token (scope: Entire account or project `lake-flow-pipeline` only). Add a `[pypi]` section to `~/.pypirc` (see template below), set `password = pypi-...` to the token you created. Then run **without** `--repository testpypi`:
 
 ```bash
-cd LakeFlow/lake-flow
+cd LakeFlow/backend
 twine upload dist/*
 ```
 
@@ -163,9 +163,9 @@ password = pypi-YOUR_TESTPYPI_TOKEN
 - **Upload to TestPyPI (test):** `twine upload --repository testpypi dist/*` (uses token in `[testpypi]`, from test.pypi.org).
 
 **If you get 400 Bad Request when uploading to PyPI:** run `twine upload dist/* --verbose` to see the error in the response. Common cases:
-1. **Version already exists** — PyPI does not allow re-uploading the same version. Update `version` in `lake-flow/pyproject.toml` (e.g. `0.1.0` → `0.1.1`), run `rm -rf dist && python3 -m build` again, then `twine upload dist/*`.
+1. **Version already exists** — PyPI does not allow re-uploading the same version. Update `version` in `backend/pyproject.toml` (e.g. `0.1.0` → `0.1.1`), run `rm -rf dist && python3 -m build` again, then `twine upload dist/*`.
 2. **The name '...' is too similar to an existing project** — PyPI normalizes names (lowercase, no hyphens/underscores), so `lake-flow` and `lakeflow` are treated as the same; if `lakeflow` exists, you cannot use `lake-flow`. Fix: change `name` in `pyproject.toml` to a different name (e.g. `lake-flow-pipeline`), create a new project on PyPI with that name, then build and upload again. See [PyPI – project name](https://pypi.org/help/#project-name).
-3. **Description failed to render** — README/long description has invalid Markdown or RST. Check `lake-flow/README.md`; you can run `twine check dist/*` before upload.
+3. **Description failed to render** — README/long description has invalid Markdown or RST. Check `backend/README.md`; you can run `twine check dist/*` before upload.
 4. **Invalid URI** — URLs in `pyproject.toml` (Homepage, Documentation, Repository) must be valid (e.g. `https://...`).
 
 **Upload only a fresh build:** if `dist/` contains old and new wheel names (e.g. `lake_flow_pipeline-*`), remove and rebuild: `rm -rf dist && python3 -m build`, then `twine upload --repository testpypi dist/*`.

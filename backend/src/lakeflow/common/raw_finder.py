@@ -4,12 +4,12 @@ from typing import Optional
 
 def find_raw_file(file_hash: str, raw_root: Path) -> Optional[Path]:
     """
-    Tìm file raw theo hash trong 100_raw.
+    Find raw file by hash in 100_raw.
 
-    Cấu trúc:
+    Structure:
         100_raw/<domain>/<file_hash>.<ext>
 
-    Trả về Path nếu tìm thấy, None nếu không.
+    Returns Path if found, None otherwise.
     """
 
     for domain_dir in raw_root.iterdir():

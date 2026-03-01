@@ -8,7 +8,7 @@ log = logging.getLogger(__name__)
 
 
 def _ensure_db_ready(db_path: Path) -> None:
-    """Đảm bảo thư mục tồn tại; xóa file rỗng hoặc khi path là thư mục (sai) để tạo DB mới."""
+    """Ensure parent directory exists; remove empty file or when path is a directory (invalid) to create new DB."""
     db_path = Path(db_path).resolve()
     parent = db_path.parent
     parent_str = os.path.abspath(str(parent))
@@ -65,7 +65,7 @@ def get_connection(db_path: Path) -> sqlite3.Connection:
             fallback_dir = "/tmp/lakeflow_catalog"
             fallback_path = os.path.join(fallback_dir, "catalog.sqlite")
             log.warning(
-                "Không ghi được DB tại %s (quyền thư mục). Dùng fallback: %s (dữ liệu mất khi container tắt)",
+                "Cannot write DB at %s (directory permissions). Using fallback: %s (data lost when container stops)",
                 db_path_str,
                 fallback_path,
             )
@@ -80,9 +80,9 @@ def get_connection(db_path: Path) -> sqlite3.Connection:
                 conn.execute("PRAGMA synchronous=FULL;")
                 return conn
             except sqlite3.OperationalError as e3:
-                log.exception("Không mở được cả DB gốc và fallback.")
+                log.exception("Could not open both original DB and fallback.")
                 raise sqlite3.OperationalError(
-                    f"unable to open database file: {db_path_str}. Fallback {fallback_path} cũng lỗi: {e3}"
+                    f"unable to open database file: {db_path_str}. Fallback {fallback_path} also failed: {e3}"
                 ) from e3
     except sqlite3.DatabaseError as e:
         err_msg = str(e).lower()

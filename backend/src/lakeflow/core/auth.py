@@ -1,29 +1,23 @@
 from fastapi import Depends, HTTPException, status
+
+from lakeflow.i18n import i18n_detail
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 
 from lakeflow.core.config import JWT_SECRET_KEY, JWT_ALGORITHM
 
 
-# =====================================================
-# OAuth2 scheme
-# =====================================================
-
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/auth/login"
 )
 
 
-# =====================================================
-# Verify JWT token
-# =====================================================
-
 def verify_token(token: str = Depends(oauth2_scheme)) -> dict:
     """
     Verify JWT access token.
 
-    - Trả về payload nếu hợp lệ
-    - Raise HTTP 401 nếu token không hợp lệ / hết hạn
+    - Returns payload if valid
+    - Raises HTTP 401 if token invalid / expired
     """
 
     try:
@@ -35,15 +29,15 @@ def verify_token(token: str = Depends(oauth2_scheme)) -> dict:
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token không hợp lệ hoặc đã hết hạn",
+            detail=i18n_detail("auth.token_invalid_or_expired"),
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Kiểm tra payload tối thiểu
+    # Check minimum payload
     if "sub" not in payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token payload không hợp lệ",
+            detail=i18n_detail("auth.token_payload_invalid"),
         )
 
     return payload

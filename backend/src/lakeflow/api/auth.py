@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 
 from lakeflow.api.schemas.auth import LoginRequest, TokenResponse
+from lakeflow.i18n import i18n_detail
 from lakeflow.core.auth import verify_token
 from lakeflow.services.auth_service import authenticate
 
@@ -13,7 +14,7 @@ def login(data: LoginRequest):
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or password"
+            detail=i18n_detail("auth.invalid_credentials"),
         )
 
     return {"access_token": token}
@@ -21,5 +22,5 @@ def login(data: LoginRequest):
 
 @router.get("/me")
 def me(payload: dict = Depends(verify_token)):
-    """Trả về thông tin user hiện tại từ token (dùng để lọc lịch sử theo từng tài khoản)."""
+    """Return current user info from token (used to filter history per account)."""
     return {"username": payload["sub"]}

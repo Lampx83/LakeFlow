@@ -4,9 +4,9 @@ import os
 
 def get_token_root() -> Path:
     """
-    Quy ước rõ ràng:
+    Clear convention:
     - LAKEFLOW_RUNTIME=docker|prod  → /data
-    - mặc định (local dev)          → ~/.lakeflow
+    - default (local dev)           → ~/.lakeflow
     """
 
     runtime = os.getenv("LAKEFLOW_RUNTIME", "local").lower()

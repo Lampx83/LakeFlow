@@ -2,7 +2,7 @@
 Inbox API: upload files into 000_inbox and list by domain.
 
 - POST /inbox/upload: multipart form (domain, file(s)) -> write to inbox_path()/domain/
-  Sau khi upload thành công, tự chạy pipeline (step0→step4) cho domain đó; collection Qdrant = tên domain.
+  After successful upload, automatically runs pipeline (step0→step4) for that domain; Qdrant collection = domain name.
 - GET /inbox/domains: list top-level subdirs of 000_inbox
 - GET /inbox/list?domain=...: list files in a domain folder
 """
@@ -16,9 +16,10 @@ import urllib.request
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 
 from lakeflow.config import paths
+from lakeflow.i18n import i18n_detail, get_locale_from_request, t
 
 logger = logging.getLogger(__name__)
 
@@ -39,25 +40,27 @@ def _inbox_root() -> Path:
 
 @router.post("/upload")
 async def upload_to_inbox(
+    request: Request,
     domain: str = Form(..., description="Subfolder under 000_inbox (e.g. quy_dinh, syllabus, Regulations and Policies)"),
-    path: Optional[str] = Form(None, description="Subpath under domain (e.g. thư mục con). Để trống = upload vào gốc domain."),
+    path: Optional[str] = Form(None, description="Subpath under domain (e.g. subfolder). Leave empty = upload to domain root."),
     files: list[UploadFile] = File(..., description="Files to upload"),
-    qdrant_url: Optional[str] = Form(None, description="URL Qdrant để step4 ghi vector (trống = dùng Qdrant mặc định của Datalake). VD: http://host.docker.internal:8010 cho Research Qdrant."),
+    qdrant_url: Optional[str] = Form(None, description="Qdrant URL for step4 to write vectors (empty = use Datalake default Qdrant). E.g. http://host.docker.internal:8010 for Research Qdrant."),
 ):
+    locale = get_locale_from_request(request)
     """Upload one or more files into 000_inbox/<domain>/<path>/ (path optional)."""
     domain = (domain or "").strip()
     if not domain:
-        raise HTTPException(status_code=400, detail="domain is required")
+        raise HTTPException(status_code=400, detail=i18n_detail("inbox.domain_required"))
     root = _inbox_root()
     domain_root = _domain_path_safe(root, domain)
     if domain_root is None:
         raise HTTPException(
             status_code=400,
-            detail="domain invalid (no .. or path separators)",
+            detail=i18n_detail("inbox.domain_invalid"),
         )
     target_dir = _domain_subpath_safe(domain_root, path or "")
     if target_dir is None:
-        raise HTTPException(status_code=400, detail="path invalid (no .. or path separators)")
+        raise HTTPException(status_code=400, detail=i18n_detail("inbox.path_invalid"))
 
     target_dir.mkdir(parents=True, exist_ok=True)
 
@@ -66,29 +69,29 @@ async def upload_to_inbox(
 
     for f in files or []:
         if not f.filename:
-            errors.append("One file had no filename")
+            errors.append(t("inbox.file_no_filename", locale))
             continue
         ext = Path(f.filename).suffix.lower()
         if ext not in ALLOWED_EXTENSIONS:
-            errors.append(f"{f.filename}: extension {ext} not allowed (allowed: {', '.join(sorted(ALLOWED_EXTENSIONS))})")
+            errors.append(t("inbox.extension_not_allowed", locale, filename=f.filename, ext=ext, allowed=", ".join(sorted(ALLOWED_EXTENSIONS))))
             continue
         # Safe filename: keep original name but avoid path traversal
         safe_name = os.path.basename(f.filename)
         if ".." in safe_name or safe_name.startswith("/"):
-            errors.append(f"{f.filename}: invalid filename")
+            errors.append(t("inbox.invalid_filename", locale, filename=f.filename))
             continue
         dest = target_dir / safe_name
         try:
             content = await f.read()
             if len(content) > MAX_FILE_SIZE:
-                errors.append(f"{f.filename}: file too large (max {MAX_FILE_SIZE // (1024*1024)} MB)")
+                errors.append(t("inbox.file_too_large", locale, filename=f.filename, max_mb=MAX_FILE_SIZE // (1024 * 1024)))
                 continue
             dest.write_bytes(content)
             uploaded.append(safe_name)
         except Exception as e:
-            errors.append(f"{f.filename}: {e!s}")
+            errors.append(t("inbox.file_error", locale, filename=f.filename, error=str(e)))
 
-    # Tự chạy pipeline cho domain (step0→step4), collection Qdrant = tên domain; có thể ghi sang qdrant_url (VD Research Qdrant)
+    # Auto-run pipeline for domain (step0→step4), Qdrant collection = domain name; may write to qdrant_url (e.g. Research Qdrant)
     if uploaded:
         _trigger_pipeline_for_domain(domain, qdrant_url=(qdrant_url or "").strip() or None)
 
@@ -96,7 +99,7 @@ async def upload_to_inbox(
 
 
 def _trigger_pipeline_for_domain(domain: str, qdrant_url: Optional[str] = None) -> None:
-    """Chạy pipeline (step0→step4) cho domain trong background; step4 dùng collection_name = domain, có thể ghi sang qdrant_url."""
+    """Run pipeline (step0→step4) for domain in background; step4 uses collection_name = domain, may write to qdrant_url."""
     base_url = os.getenv("LAKEFLOW_PIPELINE_BASE_URL", "http://127.0.0.1:8011").rstrip("/")
 
     def _run() -> None:
@@ -175,7 +178,11 @@ def _domain_subpath_safe(domain_root: Path, subpath: str) -> Optional[Path]:
 
 
 @router.get("/list")
-def list_files(domain: Optional[str] = None, path: Optional[str] = None):
+def list_files(
+    request: Request,
+    domain: Optional[str] = None,
+    path: Optional[str] = None,
+):
     """
     If domain is given: list folders and files in 000_inbox/<domain>/<path>/.
     path is optional (subpath, can be multi-level e.g. 'folder1/folder2').
@@ -196,10 +203,10 @@ def list_files(domain: Optional[str] = None, path: Optional[str] = None):
     domain = domain.strip()
     domain_root = _domain_path_safe(root, domain)
     if domain_root is None:
-        raise HTTPException(status_code=400, detail="Invalid domain")
+        raise HTTPException(status_code=400, detail=i18n_detail("inbox.invalid_domain"))
     target_dir = _domain_subpath_safe(domain_root, path or "")
     if target_dir is None:
-        raise HTTPException(status_code=400, detail="Invalid path")
+        raise HTTPException(status_code=400, detail=i18n_detail("inbox.invalid_path"))
     if not target_dir.exists() or not target_dir.is_dir():
         return {"domain": domain, "path": path or "", "folders": [], "files": []}
 

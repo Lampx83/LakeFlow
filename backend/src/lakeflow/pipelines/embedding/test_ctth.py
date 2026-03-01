@@ -16,7 +16,7 @@ headers = {
 
 try:
     response = requests.post(url, headers=headers, json=payload)
-    response.raise_for_status()  # Báo lỗi nếu HTTP != 200
+    response.raise_for_status()  # Raise error if HTTP != 200
 
     data = response.json()
     print("Response JSON:")

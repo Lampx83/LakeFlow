@@ -15,15 +15,12 @@ def render():
 
     st.header("🔎 Semantic Search")
     st.caption(
-        "Tìm kiếm theo nghĩa (semantic): nhập câu hỏi hoặc từ khóa bằng ngôn ngữ tự nhiên, hệ thống sẽ tìm các đoạn tài liệu **tương đồng về nghĩa** với query (dựa trên embedding vector). "
-        "**Score** = độ tương đồng cosine (0–1): càng gần 1 càng liên quan."
+        "Semantic search: enter question or keywords in natural language, system finds document chunks **semantically similar** to query (based on embedding vectors). "
+        "**Score** = cosine similarity (0–1): closer to 1 = more relevant."
     )
 
     token = st.session_state.token
 
-    # --------------------------------------------------
-    # Qdrant Service + Collection + PARAMS
-    # --------------------------------------------------
     qdrant_opts = qdrant_service_options()
     qdrant_labels = [t[0] for t in qdrant_opts]
     qdrant_values = [t[1] for t in qdrant_opts]
@@ -32,13 +29,13 @@ def render():
         range(len(qdrant_labels)),
         format_func=lambda i: qdrant_labels[i],
         key="semantic_qdrant_svc",
-        help="Chọn Qdrant để tìm kiếm. Mặc định: localhost (dev) hoặc lakeflow-qdrant (docker).",
+        help="Select Qdrant to search. Default: localhost (dev) or lakeflow-qdrant (docker).",
     )
     qdrant_custom = st.text_input(
-        "Hoặc nhập địa chỉ Qdrant tùy chỉnh",
-        placeholder="http://host:6333 hoặc host:6333",
+        "Or enter custom Qdrant address",
+        placeholder="http://host:6333 or host:6333",
         key="semantic_qdrant_custom",
-        help="Nếu nhập URL ở đây, hệ thống sẽ dùng Qdrant này thay vì lựa chọn trên.",
+        help="If URL entered here, system uses this Qdrant instead of selection above.",
     )
     qdrant_url = normalize_qdrant_url(qdrant_custom) if (qdrant_custom and qdrant_custom.strip()) else qdrant_values[qdrant_idx]
 
@@ -54,7 +51,7 @@ def render():
         collection_name = st.selectbox(
             "📦 Collection",
             collections,
-            help="Collection Qdrant chứa embeddings để tìm kiếm.",
+            help="Qdrant collection containing embeddings to search.",
         )
 
     with col2:
@@ -63,34 +60,34 @@ def render():
             min_value=1,
             max_value=50,
             value=10,
-            help="Số lượng kết quả tối đa trả về.",
+            help="Maximum number of results to return.",
         )
 
     with col3:
-        use_threshold = st.checkbox("Dùng ngưỡng điểm (score threshold)", value=False)
+        use_threshold = st.checkbox("Use score threshold", value=False)
         score_threshold = None
         if use_threshold:
             score_threshold = st.slider(
-                "Score tối thiểu",
+                "Minimum score",
                 min_value=0.0,
                 max_value=1.0,
                 value=0.5,
                 step=0.05,
-                help="Chỉ hiển thị kết quả có score >= giá trị này.",
+                help="Only show results with score >= this value.",
             )
 
     query = st.text_area(
-        "Query (ngôn ngữ tự nhiên)",
-        placeholder="Ví dụ: quy định về kinh tế quốc dân, điều kiện tuyển sinh, chính sách học phí...",
+        "Query (natural language)",
+        placeholder="e.g.: regulations on university admission, enrollment conditions, tuition policy...",
         height=100,
     )
 
     if st.button("🔍 Search", type="primary"):
         if not query.strip():
-            st.warning("Query không được để trống")
+            st.warning("Query cannot be empty")
             return
 
-        with st.spinner("Đang tìm kiếm..."):
+        with st.spinner("Searching..."):
             try:
                 data = semantic_search(
                     query=query.strip(),
@@ -101,21 +98,19 @@ def render():
                     score_threshold=score_threshold,
                 )
             except Exception as exc:
-                st.error(f"Lỗi khi gọi API: {exc}")
+                st.error(f"API call error: {exc}")
                 return
 
-        # ---------- Summary ----------
         results = data.get("results", [])
-        st.subheader("📊 Tổng quan")
-        st.metric("Số kết quả", len(results))
+        st.subheader("📊 Overview")
+        st.metric("Results count", len(results))
         if results:
             scores = [r["score"] for r in results]
-            st.caption(f"Score trung bình: {sum(scores) / len(scores):.4f} | Min: {min(scores):.4f} | Max: {max(scores):.4f}")
+            st.caption(f"Avg score: {sum(scores) / len(scores):.4f} | Min: {min(scores):.4f} | Max: {max(scores):.4f}")
 
-        # ---------- Table view ----------
         if results:
-            st.subheader("📋 Bảng kết quả")
-            st.caption("Bấm vào từng dòng để xem chi tiết bên dưới. Cột **text** rút gọn 80 ký tự.")
+            st.subheader("📋 Results table")
+            st.caption("Click each row to see detail below. **text** column truncated to 80 chars.")
 
             rows = []
             for idx, r in enumerate(results, start=1):
@@ -132,9 +127,8 @@ def render():
             df = pd.DataFrame(rows)
             st.dataframe(df, use_container_width=True)
 
-        # ---------- Detail cards ----------
         if results:
-            st.subheader("📄 Chi tiết từng kết quả")
+            st.subheader("📄 Result details")
             for idx, r in enumerate(results, start=1):
                 title = (
                     f"[{idx}] Score = {r['score']:.4f} | "
@@ -142,7 +136,7 @@ def render():
                     f"chunk_id = {r.get('chunk_id')}"
                 )
                 with st.expander(title, expanded=(idx <= 2)):
-                    st.caption("**Score** = độ tương đồng cosine (0–1). Càng gần 1 càng giống nghĩa với query.")
+                    st.caption("**Score** = cosine similarity (0–1). Closer to 1 = more semantically similar to query.")
                     c1, c2 = st.columns(2)
                     with c1:
                         st.write("**Metadata**")
@@ -154,10 +148,10 @@ def render():
                         if r.get("id"):
                             st.write(f"- point id: `{r.get('id')}`")
                     with c2:
-                        st.write("**Nội dung (text)**")
-                        text = r.get("text") or "(trống)"
+                        st.write("**Content (text)**")
+                        text = r.get("text") or "(empty)"
                         st.text_area(
-                            "Nội dung",
+                            "Content",
                             value=text,
                             height=200,
                             key=f"semantic_text_{idx}_{r.get('id', idx)}",
@@ -165,19 +159,18 @@ def render():
                             label_visibility="collapsed",
                         )
                         st.download_button(
-                            "⬇️ Copy / Tải nội dung",
+                            "⬇️ Copy / Download content",
                             data=text,
                             file_name=f"chunk_{r.get('file_hash', '')}_{r.get('chunk_id', idx)}.txt",
                             mime="text/plain",
                             key=f"semantic_dl_{idx}_{r.get('id', idx)}",
                         )
 
-        # ---------- Raw response (collapsed) ----------
         with st.expander("📦 Raw API Response", expanded=False):
             st.json(data)
 
         if not results:
-            st.info("Không có kết quả phù hợp. Thử đổi query, tăng Top K hoặc giảm score threshold.")
+            st.info("No matching results. Try changing query, increasing Top K or lowering score threshold.")
 
     else:
-        st.info("Nhập query và bấm **Search** để bắt đầu tìm kiếm theo nghĩa.")
+        st.info("Enter query and click **Search** to start semantic search.")

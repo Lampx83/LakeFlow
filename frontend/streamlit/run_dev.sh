@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Chạy Streamlit dev từ đúng thư mục để runOnSave và file watch hoạt động.
-# Có thể gọi từ project root: ./frontend/streamlit/run_dev.sh
-# Load .env: trước khi chạy có thể chạy: export $(grep -v '^#' ../../.env | xargs)
+# Run Streamlit dev from correct directory so runOnSave and file watch work.
+# Can call from project root: ./frontend/streamlit/run_dev.sh
+# Load .env: before running you can run: export $(grep -v '^#' ../../.env | xargs)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"

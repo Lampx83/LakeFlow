@@ -1,14 +1,15 @@
 def canonicalize_text(text: str) -> str:
+    """Canonicalize text: expand aliases (e.g. NEU, KTQD) to full form for better semantic search."""
     if not text:
         return text
 
     t = text.lower()
 
     ALIAS_MAP = {
-        "neu": "đại học kinh tế quốc dân",
-        "đhktqd": "đại học kinh tế quốc dân",
-        "đh ktqd": "đại học kinh tế quốc dân",
-        "ktqd": "đại học kinh tế quốc dân",
+        "neu": "National Economics University",
+        "đhktqd": "National Economics University",
+        "đh ktqd": "National Economics University",
+        "ktqd": "National Economics University",
     }
 
     for alias, canonical in ALIAS_MAP.items():

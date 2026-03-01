@@ -33,14 +33,14 @@ class RawIngestor:
             return
         except OSError as exc:
             self._log(src, None, "IO_ERROR", str(exc))
-            print(f"[INGEST][SKIP] Không đọc được file (quyền / file khóa / sync): {exc}")
+            print(f"[INGEST][SKIP] Cannot read file (permissions / locked / sync): {exc}")
             return
 
         ext = src.suffix
         raw_path = self.raw_root / domain / f"{file_hash}{ext}"
         now = datetime.utcnow().isoformat()
 
-        # ---------- DEDUP (bỏ qua nếu force) ----------
+        # ---------- DEDUP (skip if force) ----------
         if not force and hash_exists(self.conn, file_hash):
             print("[INGEST]   Duplicate detected, skip copy")
             self._log(src, file_hash, "DUPLICATE", "Hash already exists")

@@ -10,7 +10,7 @@ from lakeflow.common.jsonio import read_json
 
 
 class ProcessedPipelineError(RuntimeError):
-    """Lỗi trong pipeline 300_processed."""
+    """Error in 300_processed pipeline."""
 
 
 REQUIRED_OUTPUT_FILES = {
@@ -30,7 +30,7 @@ def run_processed_pipeline(
     parent_dir: Optional[str] = None,
 ) -> None:
     """
-    Orchestrator cho bước 300_processed.
+    Orchestrator for 300_processed step.
     """
 
     print(f"[300] Start processing: {file_hash}")
@@ -63,10 +63,10 @@ def run_processed_pipeline(
 
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # ---------- 3. Dispatch by file type (ĐÃ CẬP NHẬT) ----------
+    # ---------- 3. Dispatch by file type ----------
     print(f"[300] File type: {file_type}")
 
-    # Hỗ trợ cả xlsx và xls
+    # Support both xlsx and xls
     if file_type in ["xlsx", "xls"]:
         run_excel_pipeline(
             file_hash=file_hash,
@@ -83,7 +83,7 @@ def run_processed_pipeline(
             validation=validation,
         )
 
-    # BỔ SUNG: Nhánh xử lý Word
+    # Word processing branch
     elif file_type == "docx":
         run_word_pipeline(
             file_hash=file_hash,
@@ -100,9 +100,9 @@ def run_processed_pipeline(
     missing = REQUIRED_OUTPUT_FILES - produced
 
     if missing:
-        # Lưu ý: Một số file Word/Excel có thể không trích xuất được bảng 
-        # nhưng table_analyzer vẫn nên tạo file tables.json trống [] 
-        # để vượt qua bước kiểm tra contract này.
+        # Note: Some Word/Excel files may not extract tables,
+        # but table_analyzer should still create empty tables.json []
+        # to pass this contract check.
         raise ProcessedPipelineError(
             f"Processed output incomplete for {file_hash}, missing: {missing}"
         )
@@ -122,7 +122,7 @@ def run_processed_pipeline(
 
 
 # class ProcessedPipelineError(RuntimeError):
-#     """Lỗi trong pipeline 300_processed."""
+#     """Error in 300_processed pipeline."""
 
 
 # REQUIRED_OUTPUT_FILES = {
@@ -142,25 +142,25 @@ def run_processed_pipeline(
 #     parent_dir: Optional[str] = None,
 # ) -> None:
 #     """
-#     Orchestrator cho bước 300_processed.
-
-#     parent_dir: thư mục cha (domain) — output sẽ là 300_processed/<parent_dir>/<file_hash>/
-#     Nếu không truyền: 300_processed/<file_hash>/ (giữ tương thích).
-
+#     Orchestrator for 300_processed step.
+#
+#     parent_dir: parent directory (domain) — output will be 300_processed/<parent_dir>/<file_hash>/
+#     If not passed: 300_processed/<file_hash>/ (keep compatibility).
+#
 #     Parameters
 #     ----------
 #     file_hash : str
-#         Hash của file gốc
+#         Hash of source file
 #     raw_file_path : Path
-#         Đường dẫn file trong 100_raw
+#         File path in 100_raw
 #     staging_dir : Path
-#         Thư mục 200_staging/<domain>/<file_hash> hoặc 200_staging/<file_hash>
+#         Directory 200_staging/<domain>/<file_hash> or 200_staging/<file_hash>
 #     processed_root : Path
-#         Root của 300_processed
+#         Root of 300_processed
 #     force : bool
-#         True để xử lý lại dù đã có processing data
+#         True to reprocess even if processing data exists
 #     parent_dir : str, optional
-#         Thư mục cha (domain) để ghi 300_processed/<parent_dir>/<file_hash>/
+#         Parent directory (domain) for output 300_processed/<parent_dir>/<file_hash>/
 #     """
 
 #     print(f"[300] Start processing: {file_hash}")

@@ -2,7 +2,7 @@ import os
 import requests
 from typing import List
 
-import lakeflow.config.env  # noqa: F401 - load .env trước config
+import lakeflow.config.env  # noqa: F401 - load .env before config
 from lakeflow.core.config import LLM_BASE_URL
 
 OLLAMA_EMBED_URL = (
@@ -15,14 +15,21 @@ EMBED_MODEL = os.getenv(
 )
 
 
-def embed_batch(texts: List[str]) -> List[List[float]]:
+def embed_batch(texts: List[str], model: str | None = None) -> List[List[float]]:
     """
     Embed multiple texts via Ollama.
-    Returns: List of vectors
+
+    Args:
+        texts: List of strings to embed
+        model: Override model (optional). If None, uses EMBED_MODEL env or default.
+
+    Returns:
+        List of vectors
     """
+    use_model = (model or "").strip() or EMBED_MODEL
 
     payload = {
-        "model": EMBED_MODEL,
+        "model": use_model,
         "input": texts
     }
 

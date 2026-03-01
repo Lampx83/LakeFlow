@@ -1,5 +1,5 @@
 """
-API Admin: bảng User, thống kê số tin nhắn, xóa toàn bộ tin nhắn theo user.
+Admin API: user table, message counts, delete all messages per user.
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -10,19 +10,19 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 def _require_admin(payload: dict) -> None:
-    """Chỉ admin mới được gọi API admin (xóa tin nhắn)."""
+    """Only admin can call admin API (delete messages)."""
     if payload.get("sub") != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Chỉ tài khoản admin mới được thực hiện thao tác này",
+            detail=i18n_detail("admin.admin_only"),
         )
 
 
 @router.get("/users")
 def list_users_with_message_count(payload: dict = Depends(verify_token)):
     """
-    Danh sách user kèm số tin nhắn (câu hỏi Q&A đã gửi).
-    Trả về: [ {"username": "...", "message_count": N}, ... ]
+    List users with message count (Q&A questions sent).
+    Returns: [ {"username": "...", "message_count": N}, ... ]
     """
     rows = get_message_counts_by_user()
     return [
@@ -34,8 +34,8 @@ def list_users_with_message_count(payload: dict = Depends(verify_token)):
 @router.delete("/users/{username}/messages")
 def delete_all_user_messages(username: str, payload: dict = Depends(verify_token)):
     """
-    Xóa toàn bộ tin nhắn của một user.
-    Chỉ tài khoản admin mới được gọi.
+    Delete all messages for a user.
+    Only admin account can call this.
     """
     _require_admin(payload)
     deleted = delete_messages_by_user(username)

@@ -7,7 +7,7 @@ FastAPI backend and data pipelines for [LakeFlow](https://github.com/Lampx83/EDU
 ## Overview
 
 - **API:** FastAPI app (`lakeflow.main:app`) — auth, search, embed, pipeline trigger, Qdrant proxy, system.
-- **Data Lake:** Layered zones under `LAKEFLOW_DATA_BASE_PATH`: `000_inbox` → `100_raw` → `200_staging` → `300_processed` → `400_embeddings` → `500_catalog`.
+- **Data Lake:** Layered zones under `LAKE_ROOT`: `000_inbox` → `100_raw` → `200_staging` → `300_processed` → `400_embeddings` → `500_catalog`.
 - **Vector store:** Qdrant (default collection `lakeflow_chunks`). Embeddings via sentence-transformers (e.g. `all-MiniLM-L6-v2`).
 
 ---
@@ -22,14 +22,14 @@ FastAPI backend and data pipelines for [LakeFlow](https://github.com/Lampx83/EDU
 
 ## Install & run
 
-**Với Docker** (từ thư mục gốc repo LakeFlow, nơi có `docker-compose.yml`):
+**With Docker** (from LakeFlow repo root, where `docker-compose.yml` is):
 
 ```bash
 docker compose up --build
 # API: http://localhost:8011
 ```
 
-**Local dev** (từ thư mục gốc repo, vào `backend`):
+**Local dev** (from repo root, into `backend`):
 
 ```bash
 cd backend
@@ -37,12 +37,12 @@ python3 -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 pip install -e .
-# Tạo/copy .env (repo root hoặc backend) với LAKEFLOW_DATA_BASE_PATH, QDRANT_HOST, v.v.
+# Create/copy .env (repo root or backend) with LAKE_ROOT, QDRANT_HOST, etc.
 python -m uvicorn lakeflow.main:app --reload --port 8011
 ```
 
-- Nếu gặp lỗi **`bad interpreter`** (venv trỏ sai Python): xóa `.venv`, chạy lại `python3 -m venv .venv` rồi `pip install -r requirements.txt` và `pip install -e .`.
-- Nếu báo **`Address already in use`** (cổng 8011 đã bị chiếm): giải phóng rồi chạy lại server — `lsof -ti :8011 | xargs kill -9`
+- If **`bad interpreter`** (venv points to wrong Python): remove `.venv`, run `python3 -m venv .venv` then `pip install -r requirements.txt` and `pip install -e .`.
+- If **`Address already in use`** (port 8011 occupied): free it then restart server — `lsof -ti :8011 | xargs kill -9`
 
 - **Swagger:** http://localhost:8011/docs  
 - **ReDoc:** http://localhost:8011/redoc  
@@ -52,7 +52,7 @@ python -m uvicorn lakeflow.main:app --reload --port 8011
 
 ## Pipeline steps (CLI)
 
-Chạy từ thư mục **backend** (đã kích hoạt venv và set `LAKEFLOW_DATA_BASE_PATH` trong `.env` hoặc môi trường).
+Run from **backend** directory (with venv activated and `LAKE_ROOT` in `.env` or env).
 
 | Step | Command | Output |
 |------|---------|--------|
@@ -62,7 +62,7 @@ Chạy từ thư mục **backend** (đã kích hoạt venv và set `LAKEFLOW_DAT
 | 3 – Embeddings | `python -m lakeflow.scripts.step3_processed_files` | `embeddings.npy`, `chunks_meta.json` |
 | 4 – Qdrant | `python -m lakeflow.scripts.step3_processed_qdrant` | Points in Qdrant |
 
-Hoặc dùng **Streamlit UI** (Pipeline Runner) khi `LAKEFLOW_MODE=DEV`.
+Or use **Streamlit UI** (Pipeline Runner) when `LAKEFLOW_MODE=DEV`.
 
 ---
 

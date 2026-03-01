@@ -1,5 +1,5 @@
-# Build và đẩy LakeFlow (backend + frontend) lên Docker Hub.
-# Kích hoạt: push lên main hoặc chạy thủ công (Actions → Push LakeFlow to Docker Hub → Run workflow).
+# Build and push LakeFlow (backend + frontend) to Docker Hub.
+# Trigger: push to main or run manually (Actions → Push LakeFlow to Docker Hub → Run workflow).
 #
 # Secrets: DOCKERHUB_USER, DOCKERHUB_TOKEN
 
@@ -9,8 +9,8 @@ on:
   push:
     branches: ['main']
     paths:
-      - 'lake-flow/**'
-      - 'lake-flow-ui/**'
+      - 'backend/**'
+      - 'frontend/**'
       - '.github/workflows/push-dockerhub.yml'
   workflow_dispatch:
 
@@ -29,7 +29,7 @@ jobs:
 
       - uses: docker/build-push-action@v6
         with:
-          context: ./lake-flow
+          context: ./backend
           push: true
           tags: ${{ secrets.DOCKERHUB_USER }}/lakeflow-backend:latest
           platforms: linux/amd64
@@ -50,7 +50,7 @@ jobs:
 
       - uses: docker/build-push-action@v6
         with:
-          context: ./lake-flow-ui
+          context: ./frontend/streamlit
           push: true
           tags: ${{ secrets.DOCKERHUB_USER }}/lakeflow-frontend:latest
           platforms: linux/amd64

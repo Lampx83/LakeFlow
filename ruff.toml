@@ -1,5 +1,5 @@
-# Ruff config cho CI & dev (backend + frontend)
-# Chạy: ruff check . hoặc ruff check backend/src frontend/streamlit
+# Ruff config for CI & dev (backend + frontend)
+# Run: ruff check . or ruff check backend/src frontend/streamlit
 
 target-version = "py310"
 line-length = 100
@@ -17,13 +17,13 @@ exclude = [
 [lint]
 select = ["E", "F", "I", "N", "W"]
 ignore = [
-  "E501",   # line too long (để formatter hoặc black lo)
-  "ANN",    # type hints (bật khi đã chuẩn hóa type)
+  "E501",   # line too long (let formatter or black handle)
+  "ANN",    # type hints (enable when types standardized)
 ]
 
 [lint.isort]
 known-first-party = ["lakeflow"]
 
-# Scripts gọi load_dotenv() trước khi import lakeflow → E402 chấp nhận
+# Scripts call load_dotenv() before importing lakeflow - E402 accepted
 [lint.per-file-ignores]
 "backend/src/lakeflow/scripts/*.py" = ["E402"]

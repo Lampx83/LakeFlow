@@ -47,7 +47,7 @@ def run_excel_pipeline(
 
     table = {
         "table_id": f"{file_hash}_table_1",
-        "title": f"Dữ liệu từ sheet '{primary_sheet}'",
+        "title": f"Data from sheet '{primary_sheet}'",
         "headers": list(df.columns),
         "row_count": int(df.shape[0]),
         "rows": df_filled.values.tolist(),
@@ -63,11 +63,11 @@ def run_excel_pipeline(
 
     overview_text = normalize_text(
         f"""
-        Tài liệu bảng dữ liệu trích xuất từ file Excel '{raw_file_path.name}'.
-        Sheet chính: {primary_sheet}.
-        Số dòng dữ liệu: {df.shape[0]}.
-        Số cột: {df.shape[1]}.
-        Các cột bao gồm: {', '.join(df.columns)}.
+        Tabular data extracted from Excel file '{raw_file_path.name}'.
+        Primary sheet: {primary_sheet}.
+        Row count: {df.shape[0]}.
+        Column count: {df.shape[1]}.
+        Columns: {', '.join(df.columns)}.
         """
     )
 
@@ -81,12 +81,12 @@ def run_excel_pipeline(
         ]
 
         if items:
-            row_text = f"Dòng {i+1}. " + "; ".join(items)
+            row_text = f"Row {i+1}. " + "; ".join(items)
             rows_detail.append(normalize_text(row_text))
 
     detailed_text = "\n".join(rows_detail)
 
-    full_clean_text = overview_text + "\n\nChi tiết dữ liệu:\n" + detailed_text
+    full_clean_text = overview_text + "\n\nData details:\n" + detailed_text
 
     (output_dir / "clean_text.txt").write_text(
         full_clean_text,
@@ -100,12 +100,12 @@ def run_excel_pipeline(
     sections = [
         {
             "section_id": "overview",
-            "title": "Tổng quan bảng dữ liệu",
+            "title": "Table data overview",
             "level": 1,
         },
         {
             "section_id": "data_rows",
-            "title": "Chi tiết các dòng dữ liệu",
+            "title": "Row details",
             "level": 1,
         },
     ]
@@ -148,8 +148,8 @@ def run_excel_pipeline(
     write_json(output_dir / "chunks.json", chunks)
 
     print(f"[PROCESS][EXCEL] {raw_file_path.name} → {len(chunks)} chunks created.")
-    
-# cũ trước 23/2/2026
+
+# legacy before 23/2/2026
 # from pathlib import Path
 # from typing import Dict, Any, List
 # import pandas as pd
@@ -165,8 +165,8 @@ def run_excel_pipeline(
 #     validation: Dict[str, Any],
 # ) -> None:
 #     """
-#     Xử lý Excel → sinh dữ liệu AI-ready (300_processed).
-#     Phiên bản nâng cấp: Trích xuất chi tiết từng dòng để AI có thể trả lời chính xác.
+#     Process Excel → produce AI-ready data (300_processed).
+#     Upgraded version: Extract row-level detail for accurate AI responses.
 #     """
 
 #     # ---------- 1. Load Excel ----------
@@ -175,13 +175,13 @@ def run_excel_pipeline(
 
 #     df = excel.parse(primary_sheet)
 #     df = df.dropna(how="all")
-#     # Thay thế NaN bằng chuỗi rỗng để tránh lỗi JSON
+#     # Replace NaN with empty string to avoid JSON errors
 #     df_filled = df.fillna("")
 
-#     # ---------- 2. Build tables.json (Giữ nguyên cấu trúc cũ) ----------
+#     # ---------- 2. Build tables.json (Keep previous structure) ----------
 #     table = {
 #         "table_id": f"{file_hash}_table_1",
-#         "title": f"Dữ liệu từ sheet '{primary_sheet}'",
+#         "title": f"Data from sheet '{primary_sheet}'",
 #         "headers": list(df.columns),
 #         "row_count": int(df.shape[0]),
 #         "rows": df_filled.values.tolist(),
@@ -190,48 +190,48 @@ def run_excel_pipeline(
 #     }
 #     write_json(output_dir / "tables.json", [table])
 
-#     # ---------- 3. Build chi tiết văn bản (Narrative Text) ----------
-#     # Tạo phần tổng quan
+#     # ---------- 3. Build narrative text detail ----------
+#     # Create overview section
 #     overview_text = (
-#         f"Tài liệu bảng dữ liệu trích xuất từ file Excel '{raw_file_path.name}'.\n"
-#         f"Sheet chính: {primary_sheet}.\n"
-#         f"Số dòng dữ liệu: {df.shape[0]}.\n"
-#         f"Số cột: {df.shape[1]}.\n"
-#         f"Các cột bao gồm: {', '.join(df.columns)}."
+#         f"Tabular data extracted from Excel file '{raw_file_path.name}'.\n"
+#         f"Primary sheet: {primary_sheet}.\n"
+#         f"Row count: {df.shape[0]}.\n"
+#         f"Column count: {df.shape[1]}.\n"
+#         f"Columns: {', '.join(df.columns)}."
 #     )
 
-#     # Tạo mô tả chi tiết từng dòng dữ liệu
+#     # Create row-level detail description
 #     rows_detail = []
 #     for i, row in df_filled.iterrows():
-#         # Tạo câu: "Dòng 1: Cột A là Giá trị A, Cột B là Giá trị B..."
+#         # Create sentence: "Row 1: Col A is Value A, Col B is Value B..."
 #         items = [f"{col}: {val}" for col, val in row.items() if str(val).strip()]
-#         rows_detail.append(f"Dòng {i+1}: " + ", ".join(items))
+#         rows_detail.append(f"Row {i+1}: " + ", ".join(items))
     
 #     detailed_text = "\n".join(rows_detail)
-#     full_clean_text = overview_text + "\n\nChi tiết dữ liệu:\n" + detailed_text
+#     full_clean_text = overview_text + "\n\nData details:\n" + detailed_text
 
-#     # Lưu clean_text.txt
+#     # Save clean_text.txt
 #     (output_dir / "clean_text.txt").write_text(full_clean_text, encoding="utf-8")
 
-#     # ---------- 4. Build sections.json (Giữ nguyên cấu trúc cũ) ----------
+#     # ---------- 4. Build sections.json (Keep previous structure) ----------
 #     sections = [
 #         {
 #             "section_id": "overview",
-#             "title": "Tổng quan bảng dữ liệu",
+#             "title": "Table data overview",
 #             "level": 1,
 #         },
 #         {
 #             "section_id": "data_rows",
-#             "title": "Chi tiết các dòng dữ liệu",
+#             "title": "Row details",
 #             "level": 1,
 #         }
 #     ]
 #     write_json(output_dir / "sections.json", sections)
 
-#     # ---------- 5. Build chunks.json (Cải tiến để chứa dữ liệu thực) ----------
+#     # ---------- 5. Build chunks.json (Improved to hold actual data) ----------
 #     chunks = []
     
-#     # Chunk 1: Tổng quan
+#     # Chunk 1: Overview
 #     chunks.append({
 #         "chunk_id": f"{file_hash}_c_ov",
 #         "text": overview_text,
@@ -240,12 +240,12 @@ def run_excel_pipeline(
 #         "token_estimate": len(overview_text.split()),
 #     })
 
-#     # Chunk 2+: Chia nhỏ dữ liệu chi tiết (tránh vượt quá giới hạn token của LLM)
-#     # Ở đây chúng ta gom nhóm khoảng 20 dòng vào 1 chunk
+#     # Chunk 2+: Split detail data (avoid exceeding LLM token limit)
+#     # Group ~20 rows per chunk
 #     batch_size = 20
 #     for i in range(0, len(rows_detail), batch_size):
 #         batch = rows_detail[i : i + batch_size]
-#         chunk_body = f"Dữ liệu từ file {raw_file_path.name}, sheet {primary_sheet} (tiếp theo):\n" + "\n".join(batch)
+#         chunk_body = f"Data from file {raw_file_path.name}, sheet {primary_sheet} (continued):\n" + "\n".join(batch)
         
 #         chunks.append({
 #             "chunk_id": f"{file_hash}_c_d{i//batch_size + 1}",
@@ -274,7 +274,7 @@ def run_excel_pipeline(
 # #     validation: Dict[str, Any],
 # # ) -> None:
 # #     """
-# #     Xử lý Excel → sinh dữ liệu AI-ready (300_processed)
+# #     Process Excel → produce AI-ready data (300_processed)
 # #     """
 
 # #     # ---------- 1. Load Excel ----------
@@ -287,7 +287,7 @@ def run_excel_pipeline(
 # #     # ---------- 2. Build tables.json ----------
 # #     table = {
 # #         "table_id": f"{file_hash}_table_1",
-# #         "title": f"Dữ liệu từ sheet '{primary_sheet}'",
+# #         "title": f"Data from sheet '{primary_sheet}'",
 # #         "headers": list(df.columns),
 # #         "row_count": int(df.shape[0]),
 # #         "rows": df.fillna("").values.tolist(),
@@ -301,11 +301,11 @@ def run_excel_pipeline(
 
 # #     # ---------- 3. Build clean_text.txt ----------
 # #     clean_text = (
-# #         f"Tài liệu bảng dữ liệu trích xuất từ file Excel '{raw_file_path.name}'.\n"
-# #         f"Sheet chính: {primary_sheet}.\n"
-# #         f"Số dòng dữ liệu: {df.shape[0]}.\n"
-# #         f"Số cột: {df.shape[1]}.\n"
-# #         f"Các cột bao gồm: {', '.join(df.columns)}."
+# #         f"Tabular data extracted from Excel file '{raw_file_path.name}'.\n"
+# #         f"Primary sheet: {primary_sheet}.\n"
+# #         f"Row count: {df.shape[0]}.\n"
+# #         f"Column count: {df.shape[1]}.\n"
+# #         f"Columns: {', '.join(df.columns)}."
 # #     )
 
 # #     (output_dir / "clean_text.txt").write_text(
@@ -317,7 +317,7 @@ def run_excel_pipeline(
 # #     sections = [
 # #         {
 # #             "section_id": "overview",
-# #             "title": "Tổng quan bảng dữ liệu",
+# #             "title": "Table data overview",
 # #             "level": 1,
 # #         }
 # #     ]

@@ -1,14 +1,14 @@
-# Portainer Stack — dùng image đã build sẵn (không dùng build).
-# Trước khi deploy:
-#   1. Build và push image lên Docker Hub:
+# Portainer Stack — use pre-built images (no build).
+# Before deploy:
+#   1. Build and push images to Docker Hub:
 #      cd LakeFlow
-#      docker build -t DOCKERHUB_USER/lakeflow-backend:latest ./lake-flow
-#      docker build -t DOCKERHUB_USER/lakeflow-frontend:latest ./lake-flow-ui
+#      docker build -t DOCKERHUB_USER/lakeflow-backend:latest ./backend
+#      docker build -t DOCKERHUB_USER/lakeflow-frontend:latest ./frontend/streamlit
 #      docker push DOCKERHUB_USER/lakeflow-backend:latest
 #      docker push DOCKERHUB_USER/lakeflow-frontend:latest
-#   2. Portainer: Stack → Add stack → Web editor → paste file này.
-#   3. Thêm Env vars trong Portainer: DOCKERHUB_USER (vd. lampx83), và biến từ .env (nếu có).
-# Không dùng: build, container_name, env_file (Portainer thường không có .env).
+#   2. Portainer: Stack → Add stack → Web editor → paste this file.
+#   3. Add Env vars in Portainer: DOCKERHUB_USER (e.g. lampx83), and vars from .env (if any).
+# Do not use: build, container_name, env_file (Portainer typically has no .env).
 
 services:
   qdrant:
@@ -25,7 +25,7 @@ services:
     ports:
       - "8011:8011"
     environment:
-      LAKEFLOW_DATA_BASE_PATH: /data
+      LAKE_ROOT: /data
       QDRANT_HOST: qdrant
       QDRANT_PORT: "6333"
     volumes:

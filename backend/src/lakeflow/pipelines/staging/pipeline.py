@@ -8,7 +8,7 @@ from lakeflow.pipelines.staging.excel_analyzer import analyze_excel
 
 
 def _write_staging_error(staging_dir: Path, reason: str) -> None:
-    """Ghi lý do lỗi vào staging_error.txt để UI/người dùng xem sau."""
+    """Write error reason to staging_error.txt for UI/user to view later."""
     try:
         staging_dir.mkdir(parents=True, exist_ok=True)
         (staging_dir / "staging_error.txt").write_text(reason, encoding="utf-8")
@@ -17,7 +17,7 @@ def _write_staging_error(staging_dir: Path, reason: str) -> None:
 
 
 def _prepare_staging_dir(staging_root: Path, file_hash: str, parent_dir: Optional[str]) -> Path:
-    """Khởi tạo và trả về đường dẫn thư mục staging."""
+    """Initialize and return staging directory path."""
     if parent_dir:
         staging_dir = staging_root / parent_dir / file_hash
     else:
@@ -44,7 +44,7 @@ def run_pdf_staging(
             _write_staging_error(staging_dir, str(e))
             raise
         except Exception as e:
-            reason = f"Phân tích PDF thất bại: {e}"
+            reason = f"PDF analysis failed: {e}"
             _write_staging_error(staging_dir, reason)
             raise StagingError(reason) from e
 
@@ -53,7 +53,7 @@ def run_pdf_staging(
         validation = {
             "file_type": "pdf",
             "requires_ocr": profile.get("is_scanned_pdf", False),
-            "has_tables": profile.get("has_images", False), # Tùy chỉnh theo logic detect table của bạn
+            "has_tables": profile.get("has_images", False),  # Customize per your table detection logic
             "recommended_pipeline": ["pdf_text_extract"],
         }
         write_json(staging_dir / "validation.json", validation)
@@ -78,7 +78,7 @@ def run_word_staging(
         try:
             profile = analyze_word(raw_docx_path)
         except Exception as e:
-            reason = f"Phân tích Word thất bại: {e}"
+            reason = f"Word analysis failed: {e}"
             _write_staging_error(staging_dir, reason)
             raise StagingError(reason) from e
 
@@ -112,7 +112,7 @@ def run_excel_staging(
         try:
             profile = analyze_excel(raw_excel_path)
         except Exception as e:
-            reason = f"Phân tích Excel thất bại: {e}"
+            reason = f"Excel analysis failed: {e}"
             _write_staging_error(staging_dir, reason)
             raise StagingError(reason) from e
 
@@ -121,7 +121,7 @@ def run_excel_staging(
         validation = {
             "file_type": profile.get("file_type", "xlsx"),
             "requires_ocr": False,
-            "has_tables": True, # Excel mặc định là bảng
+            "has_tables": True,  # Excel defaults to table
             "recommended_pipeline": ["excel_table_extract"],
         }
         write_json(staging_dir / "validation.json", validation)
@@ -139,7 +139,7 @@ def run_excel_staging(
 
 
 # def _write_staging_error(staging_dir: Path, reason: str) -> None:
-#     """Ghi lý do lỗi vào staging_error.txt để UI/người dùng xem sau."""
+#     """Write error reason to staging_error.txt for UI/user to view later."""
 #     try:
 #         staging_dir.mkdir(parents=True, exist_ok=True)
 #         (staging_dir / "staging_error.txt").write_text(reason, encoding="utf-8")
@@ -154,15 +154,15 @@ def run_excel_staging(
 #     parent_dir: Optional[str] = None,
 # ) -> None:
 #     """
-#     Chạy pipeline staging cho PDF (200_staging).
-
-#     parent_dir: thư mục cha (domain) — output sẽ là 200_staging/<parent_dir>/<file_hash>/
-#     Nếu không truyền: 200_staging/<file_hash>/ (giữ tương thích).
-
-#     Sinh:
+#     Run staging pipeline for PDF (200_staging).
+#
+#     parent_dir: parent directory (domain) — output will be 200_staging/<parent_dir>/<file_hash>/
+#     If not passed: 200_staging/<file_hash>/ (keep compatibility).
+#
+#     Produces:
 #       - pdf_profile.json
 #       - validation.json
-#       - (tuỳ chọn) text_sample.txt
+#       - (optional) text_sample.txt
 #     """
 
 #     if parent_dir:
@@ -180,7 +180,7 @@ def run_excel_staging(
 #             _write_staging_error(staging_dir, str(e))
 #             raise
 #         except Exception as e:
-#             reason = f"Phân tích PDF thất bại: {e}"
+#             reason = f"PDF analysis failed: {e}"
 #             _write_staging_error(staging_dir, reason)
 #             raise StagingError(reason) from e
 
@@ -203,13 +203,13 @@ def run_excel_staging(
 #                 validation,
 #             )
 #         except Exception as e:
-#             reason = f"Ghi validation.json thất bại: {e}"
+#             reason = f"Failed to write validation.json: {e}"
 #             _write_staging_error(staging_dir, reason)
 #             raise StagingError(reason) from e
 
 #     except StagingError:
 #         raise
 #     except OSError as e:
-#         reason = f"Lỗi ghi thư mục/file (quyền truy cập hoặc ổ đĩa): {e}"
+#         reason = f"Directory/file write error (permission or disk): {e}"
 #         _write_staging_error(staging_dir, reason)
 #         raise StagingError(reason) from e

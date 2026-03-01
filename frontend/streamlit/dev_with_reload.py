@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Chạy Streamlit và tự restart khi có thay đổi file .py trong frontend/streamlit.
-Cách dùng (từ project root):
+Run Streamlit and auto-restart when .py files change in frontend/streamlit.
+Usage (from project root):
   cd /path/to/LakeFlow
   python frontend/streamlit/dev_with_reload.py
 
-Hoặc từ frontend/streamlit:
+Or from frontend/streamlit:
   python dev_with_reload.py
 """
 import os
@@ -14,18 +14,18 @@ import sys
 import time
 from pathlib import Path
 
-# Thư mục chứa app (frontend/streamlit)
+# Directory containing the app (frontend/streamlit)
 SCRIPT_DIR = Path(__file__).resolve().parent
 WATCH_DIR = SCRIPT_DIR
-# Đuôi file cần watch
+# File extensions to watch
 WATCH_EXT = (".py", ".toml")
 
 
 def get_mtimes():
-    """Lấy dict path -> mtime cho mọi file .py, .toml trong WATCH_DIR."""
+    """Get dict path -> mtime for all .py, .toml files in WATCH_DIR."""
     mtimes = {}
     for root, _, files in os.walk(WATCH_DIR):
-        # Bỏ __pycache__ và .git
+        # Skip __pycache__ and .git
         if "__pycache__" in root or ".git" in root:
             continue
         for f in files:
@@ -41,7 +41,7 @@ def get_mtimes():
 def main():
     os.chdir(SCRIPT_DIR)
     env = os.environ.copy()
-    # Đảm bảo .env từ project root được load nếu có
+    # Load .env from project root if present
     root_env = SCRIPT_DIR / ".." / ".." / ".env"
     if root_env.resolve().exists():
         try:

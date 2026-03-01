@@ -4,97 +4,97 @@ from typing import List, Optional
 
 class EmbedRequest(BaseModel):
     """
-    Request body cho API vector hóa chuỗi (embedding)
+    Request body for string vectorization (embedding) API.
     """
     text: str = Field(
         ...,
         min_length=1,
-        description="Chuỗi cần vector hóa (embed)",
+        description="String to vectorize (embed)",
     )
 
 
 class EmbedResponse(BaseModel):
     """
-    Response: vector embedding của chuỗi (chiều phụ thuộc model, mặc định 384)
+    Response: vector embedding of string (dimension depends on model, default 384).
     """
-    text: str = Field(..., description="Chuỗi đã gửi")
+    text: str = Field(..., description="String sent")
     vector: List[float] = Field(..., description="Vector embedding (normalized)")
-    embedding: List[float] = Field(..., description="Alias của vector, cho client chỉ đọc 'embedding'")
-    dim: int = Field(..., description="Số chiều của vector")
+    embedding: List[float] = Field(..., description="Alias of vector, for clients reading 'embedding'")
+    dim: int = Field(..., description="Vector dimension")
 
 
 class SemanticSearchRequest(BaseModel):
     """
-    Request body cho API semantic search
+    Request body for semantic search API.
     """
     query: str = Field(
         ...,
         min_length=1,
-        description="Câu truy vấn ngôn ngữ tự nhiên"
+        description="Natural language query"
     )
     top_k: int = Field(
         default=5,
         ge=1,
         le=50,
-        description="Số lượng kết quả trả về"
+        description="Number of results to return"
     )
     collection_name: Optional[str] = Field(
         None,
-        description="Tên collection Qdrant (mặc định: lakeflow_chunks)"
+        description="Qdrant collection name (default: lakeflow_chunks)"
     )
     score_threshold: Optional[float] = Field(
         None,
         ge=0.0,
         le=1.0,
-        description="Ngưỡng điểm tối thiểu (chỉ trả về kết quả có score >= ngưỡng)"
+        description="Minimum score threshold (only return results with score >= threshold)"
     )
     qdrant_url: Optional[str] = Field(
         None,
-        description="URL Qdrant Service (trống = mặc định: localhost:6333 khi dev, lakeflow-qdrant:6333 khi docker)"
+        description="Qdrant Service URL (empty = default: localhost:6333 for dev, lakeflow-qdrant:6333 for docker)"
     )
 
 
 class SemanticSearchResult(BaseModel):
     """
-    Một kết quả semantic search
+    A semantic search result.
     """
     id: Optional[str] = Field(
         None,
-        description="Định danh point trong Qdrant"
+        description="Point ID in Qdrant"
     )
     score: float = Field(
         ...,
-        description="Độ tương đồng cosine"
+        description="Cosine similarity"
     )
     file_hash: Optional[str] = Field(
         None,
-        description="Hash của file nguồn"
+        description="Source file hash"
     )
     chunk_id: Optional[str] = Field(
         None,
-        description="ID của chunk"
+        description="Chunk ID"
     )
     section_id: Optional[str] = Field(
         None,
-        description="ID của section"
+        description="Section ID"
     )
     text: Optional[str] = Field(
         None,
-        description="Nội dung text của chunk"
+        description="Chunk text content"
     )
     token_estimate: Optional[int] = Field(
         None,
-        description="Ước lượng số token"
+        description="Token count estimate"
     )
     source: Optional[str] = Field(
         None,
-        description="Nguồn point (ví dụ LakeFlow)"
+        description="Point source (e.g. LakeFlow)"
     )
 
 
 class SemanticSearchResponse(BaseModel):
     """
-    Response cho API semantic search
+    Response for semantic search API.
     """
     query: str
     results: List[SemanticSearchResult]
@@ -102,43 +102,43 @@ class SemanticSearchResponse(BaseModel):
 
 class QARequest(BaseModel):
     """
-    Request body cho API Q&A
+    Request body for Q&A API.
     """
     question: str = Field(
         ...,
         min_length=1,
-        description="Câu hỏi của người dùng"
+        description="User question"
     )
     top_k: int = Field(
         default=5,
         ge=1,
         le=20,
-        description="Số lượng context chunks để sử dụng"
+        description="Number of context chunks to use"
     )
     temperature: float = Field(
         default=0.7,
         ge=0.0,
         le=2.0,
-        description="Temperature cho LLM"
+        description="LLM temperature"
     )
     collection_name: Optional[str] = Field(
         None,
-        description="Tên collection Qdrant (mặc định: lakeflow_chunks)"
+        description="Qdrant collection name (default: lakeflow_chunks)"
     )
     score_threshold: Optional[float] = Field(
         None,
         ge=0.0,
         le=1.0,
-        description="Ngưỡng điểm tối thiểu khi tìm context"
+        description="Minimum score when finding context"
     )
     qdrant_url: Optional[str] = Field(
         None,
-        description="URL Qdrant Service (trống = mặc định: localhost:6333 khi dev, lakeflow-qdrant:6333 khi docker)"
+        description="Qdrant Service URL (empty = default: localhost:6333 for dev, lakeflow-qdrant:6333 for docker)"
     )
 
 
 class QADebugInfo(BaseModel):
-    """Thông tin debug: curl commands và tiến độ các bước."""
+    """Debug info: curl commands and step progress."""
     steps_completed: List[str] = Field(default_factory=list)
     curl_embed: Optional[str] = None
     curl_search: Optional[str] = None
@@ -147,19 +147,19 @@ class QADebugInfo(BaseModel):
 
 class QAResponse(BaseModel):
     """
-    Response cho API Q&A
+    Response for Q&A API.
     """
     question: str
     answer: str
     contexts: List[SemanticSearchResult] = Field(
         ...,
-        description="Các context chunks được sử dụng"
+        description="Context chunks used"
     )
     model_used: Optional[str] = Field(
         None,
-        description="Model LLM được sử dụng"
+        description="LLM model used"
     )
     debug_info: Optional[QADebugInfo] = Field(
         None,
-        description="Curl commands để test từng bước + tiến độ đã chạy"
+        description="Curl commands to test each step + progress"
     )

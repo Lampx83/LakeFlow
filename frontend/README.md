@@ -22,6 +22,20 @@ This UI is for **operators and developers**, not for end-users or production-fac
 
 ---
 
+## Install via PyPI (optional)
+
+```bash
+pip install lakeflow-ui
+```
+
+Then run (backend must be running):
+
+```bash
+lakeflow-ui
+```
+
+---
+
 ## Run with Docker (recommended)
 
 From the **repo root**:
@@ -33,17 +47,17 @@ docker compose up --build
 - **Streamlit:** http://localhost:8012 (or the port mapped in `docker-compose.yml`)
 - **Login:** `admin` / `admin123` (demo)
 
-Ensure `.env` in repo root has at least `API_BASE_URL`, `LAKEFLOW_DATA_BASE_PATH`, and (if needed) `QDRANT_HOST` / `QDRANT_PORT`. For Docker, `API_BASE_URL=http://lakeflow-backend:8011` and `LAKEFLOW_DATA_BASE_PATH=/data` are typical.
+Ensure `.env` in repo root has at least `API_BASE_URL`, `LAKE_ROOT`, and (if needed) `QDRANT_HOST` / `QDRANT_PORT`. For Docker, `API_BASE_URL=http://lakeflow-backend:8011` and `LAKE_ROOT=/data` are typical.
 
 ---
 
 ## Run locally (dev)
 
 1. **Backend** and **Qdrant** must be running (see [backend/README.md](../backend/README.md)).
-2. From repo root, create/use `.env` with `API_BASE_URL=http://localhost:8011`, `LAKEFLOW_DATA_BASE_PATH=/path/to/your/data/lake`, and optional `QDRANT_HOST=localhost`.
-3. Chạy Streamlit (bắt buộc ở thư mục **frontend/streamlit** — file `requirements.txt` nằm tại đây):
+2. From repo root, create/use `.env` with `API_BASE_URL=http://localhost:8011`, `LAKE_ROOT=/path/to/your/data/lake`, and optional `QDRANT_HOST=localhost`.
+3. Run Streamlit (must be in **frontend/streamlit** directory — `requirements.txt` is here):
 
-   **Cách A — Dùng venv (khuyến nghị, tránh lỗi quyền khi cài package):**
+   **Option A — Use venv (recommended, avoid permission errors when installing packages):**
 
    ```bash
    cd frontend/streamlit
@@ -54,9 +68,9 @@ Ensure `.env` in repo root has at least `API_BASE_URL`, `LAKEFLOW_DATA_BASE_PATH
    streamlit run app.py
    ```
 
-   **Cách B — Từ repo root** (cần đã cài streamlit): `python frontend/streamlit/dev_with_reload.py` (tự load `.env`).
+   **Option B — From repo root** (requires streamlit installed): `python frontend/streamlit/dev_with_reload.py` (auto-loads `.env`).
 
-- Mặc định: http://localhost:8501 (trừ khi đổi trong config).
+- Default: http://localhost:8501 (unless changed in config).
 
 ---
 
@@ -75,7 +89,7 @@ Ensure `.env` in repo root has at least `API_BASE_URL`, `LAKEFLOW_DATA_BASE_PATH
 ## Configuration
 
 - **Backend URL:** `API_BASE_URL` (e.g. `http://lakeflow-backend:8011` in Docker, `http://localhost:8011` locally).
-- **Data lake path:** `LAKEFLOW_DATA_BASE_PATH` (e.g. `/data` in Docker).
+- **Data lake path:** `LAKE_ROOT` (e.g. `/data` in Docker).
 - **Qdrant:** Defaults from backend; you can pick or type a Qdrant URL in the UI for search and inspector.
 - **Pipeline Runner:** Shown only when `LAKEFLOW_MODE=DEV`. Do not enable in production.
 
@@ -86,11 +100,14 @@ Ensure `.env` in repo root has at least `API_BASE_URL`, `LAKEFLOW_DATA_BASE_PATH
 ```
 frontend/streamlit/
 ├── app.py              # Entrypoint
+├── cli.py              # lakeflow-ui (PyPI entry point)
+├── pyproject.toml      # PyPI package lakeflow-ui
 ├── config/settings.py  # API base, LAKEFLOW_MODE, Qdrant options
 ├── pages/              # Semantic Search, QA, Pipeline Runner, Data Lake Explorer, etc.
 ├── services/           # API client, pipeline, Qdrant
 ├── state/              # Session, token storage
 ├── requirements.txt
+├── Dockerfile
 └── README.md
 ```
 
