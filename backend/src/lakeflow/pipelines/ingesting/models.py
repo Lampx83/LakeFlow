@@ -7,3 +7,5 @@ from pathlib import Path
 class InboxFile:
     path: Path
     domain: str
+    """Path of the file's parent directory relative to inbox root (e.g. 'Library' or 'Library/Quy định hướng dẫn')."""
+    relative_dir: str

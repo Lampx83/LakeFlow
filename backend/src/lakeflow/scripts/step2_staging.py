@@ -46,17 +46,14 @@ def main():
     
     processed_count = 0
 
-    # Find directories that have been successfully staged
+    # Find directories that have been successfully staged (support nested: 200_staging/Library/Quy/file_hash/)
     def iter_staging_entries():
-        for entry in staging_root.iterdir():
-            if not entry.is_dir():
+        for path in staging_root.rglob("validation.json"):
+            if not path.is_file():
                 continue
-            if (entry / "validation.json").exists():
-                yield entry
-            else:
-                for sub in entry.iterdir():
-                    if sub.is_dir() and (sub / "validation.json").exists():
-                        yield sub
+            staging_dir = path.parent
+            if staging_dir != staging_root and staging_dir.is_dir():
+                yield staging_dir
 
     staging_dirs = list(iter_staging_entries())
     print(f"[DEBUG] Found {len(staging_dirs)} staging entries to process")
@@ -65,24 +62,24 @@ def main():
 
     for staging_dir in staging_dirs:
         file_hash = staging_dir.name
-        parent_name = staging_dir.parent.name if staging_dir.parent != staging_root else None
-        rel_path = f"{parent_name}/{file_hash}" if parent_name else file_hash
+        parent_dir = str(staging_dir.parent.relative_to(staging_root)).replace("\\", "/") if staging_dir.parent != staging_root else ""
+        rel_path = f"{parent_dir}/{file_hash}" if parent_dir else file_hash
 
         # Folder filter logic (preserved from original code)
         if only_folders_set is not None:
             if not (rel_path in only_folders_set or 
                     any(rel_path.startswith(p + "/") for p in only_folders_set) or
-                    (parent_name and parent_name in only_folders_set)):
+                    (parent_dir and parent_dir in only_folders_set)):
                 continue
 
-        # Find original file in 100_raw
-        raw_file = find_raw_file(file_hash, raw_root)
+        # Find original file in 100_raw (same folder structure)
+        raw_file = find_raw_file(file_hash, raw_root, parent_dir=parent_dir or None)
         if raw_file is None:
             print(f"[SKIP] Raw file not found for {file_hash}")
             continue
 
-        # Determine target directory in 300_processed
-        processed_dir = processed_root / (parent_name or "") / file_hash
+        # Determine target directory in 300_processed (preserve folder structure)
+        processed_dir = processed_root / parent_dir / file_hash if parent_dir else processed_root / file_hash
         if not force_rerun and (processed_dir / "chunks.json").exists():
             print(f"[SKIP] Already processed: {file_hash}")
             continue

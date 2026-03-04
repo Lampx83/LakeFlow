@@ -38,18 +38,19 @@ def extract_file_hash(file_path: Path) -> str:
 
 
 def _parent_dir_from_raw(file_path: Path, raw_root: Path) -> str:
-    """Get domain name (parent dir) from 100_raw."""
+    """Full path of file's parent relative to 100_raw (preserves nested folders, e.g. 'Library/Quy định hướng dẫn')."""
     try:
         rel = file_path.relative_to(raw_root)
-        return rel.parts[0] if len(rel.parts) > 1 else ""
+        return str(rel.parent).replace("\\", "/")
     except ValueError:
         return ""
 
 
 def already_staged(file_hash: str, parent_dir: str = "") -> bool:
-    """Check whether file already has validation.json in 200_staging."""
+    """Check whether file already has validation.json in 200_staging (parent_dir can contain '/')."""
     root = paths.staging_path()
-    check_path = root / parent_dir / file_hash / "validation.json"
+    # parent_dir can be "Library/Quy định hướng dẫn"
+    check_path = root / parent_dir / file_hash / "validation.json" if parent_dir else root / file_hash / "validation.json"
     return check_path.exists()
 
 

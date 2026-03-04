@@ -52,17 +52,14 @@ def main():
 
     embedded = skipped = failed = 0
 
-    # 300_processed: <domain>/<file_hash>/ or (legacy) <file_hash>/
+    # 300_processed: <parent_dir>/<file_hash>/ (nested, e.g. Library/Quy định hướng dẫn/file_hash)
     def iter_processed_entries():
-        for entry in processed_root.iterdir():
-            if not entry.is_dir() or entry.name.startswith("."):
+        for path in processed_root.rglob("chunks.json"):
+            if not path.is_file():
                 continue
-            if (entry / "chunks.json").exists():
-                yield entry  # legacy: processed_root/file_hash/
-            else:
-                for sub in entry.iterdir():
-                    if sub.is_dir() and (sub / "chunks.json").exists():
-                        yield sub  # new: processed_root/domain/file_hash/
+            processed_dir = path.parent
+            if processed_dir != processed_root and processed_dir.is_dir():
+                yield processed_dir
 
     processed_dirs = list(iter_processed_entries())
     print(f"[DEBUG] Found {len(processed_dirs)} processed dirs")
@@ -71,18 +68,18 @@ def main():
 
     for processed_dir in processed_dirs:
         file_hash = processed_dir.name
-        parent_name = processed_dir.parent.name if processed_dir.parent != processed_root else None
-        rel_path = f"{parent_name}/{file_hash}" if parent_name else file_hash
+        parent_dir = str(processed_dir.parent.relative_to(processed_root)).replace("\\", "/") if processed_dir.parent != processed_root else ""
+        rel_path = f"{parent_dir}/{file_hash}" if parent_dir else file_hash
 
-        # Filter by selected tree folder: domain, domain/file_hash, or file_hash (legacy)
+        # Filter by selected tree folder
         if only_folders_set is not None:
             if rel_path in only_folders_set:
                 pass
             elif any(rel_path.startswith(p + "/") for p in only_folders_set):
                 pass
-            elif parent_name and parent_name in only_folders_set:
+            elif parent_dir and parent_dir in only_folders_set:
                 pass
-            elif not parent_name and file_hash in only_folders_set:
+            elif not parent_dir and file_hash in only_folders_set:
                 pass
             else:
                 continue
@@ -95,7 +92,7 @@ def main():
                 processed_dir=processed_dir,
                 embeddings_root=embeddings_root,
                 force=force_rerun,
-                parent_dir=parent_name or None,
+                parent_dir=parent_dir or None,
                 model=embed_model,
             )
 

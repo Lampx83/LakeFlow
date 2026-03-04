@@ -46,7 +46,7 @@ class RunStepBody(BaseModel):
 
 
 def _list_folders_for_step(step: str) -> list[str]:
-    """Return list of folder names (domain / file_hash) for the pipeline step."""
+    """Return list of folder paths (relative, can be nested e.g. 'Library/Quy định hướng dẫn') for the pipeline step."""
     from lakeflow.config import paths
 
     out = []
@@ -62,47 +62,34 @@ def _list_folders_for_step(step: str) -> list[str]:
         elif step == "step2":
             staging = paths.staging_path()
             if staging.exists():
-                # 200_staging: <domain>/<file_hash>/ or (legacy) <file_hash>/
-                domain_names = []
-                file_hashes_flat = []
-                for entry in staging.iterdir():
-                    if not entry.is_dir() or entry.name.startswith("."):
-                        continue
-                    if (entry / "validation.json").exists():
-                        file_hashes_flat.append(entry.name)
-                    else:
-                        domain_names.append(entry.name)
-                # Prefer returning parent dir (domain) for selection; else return file_hash (legacy structure)
-                out = sorted(domain_names) if domain_names else sorted(file_hashes_flat)
+                # Collect all parent paths that contain validation.json (nested structure)
+                parent_dirs = set()
+                for path in staging.rglob("validation.json"):
+                    if path.is_file():
+                        d = path.parent
+                        if d != staging:
+                            parent_dirs.add(str(d.parent.relative_to(staging)).replace("\\", "/"))
+                out = sorted(parent_dirs) if parent_dirs else []
         elif step == "step3":
             processed = paths.processed_path()
             if processed.exists():
-                # 300_processed: <domain>/<file_hash>/ or (legacy) <file_hash>/
-                file_hashes = set()
-                for entry in processed.iterdir():
-                    if not entry.is_dir() or entry.name.startswith("."):
-                        continue
-                    if (entry / "chunks.json").exists():
-                        file_hashes.add(entry.name)
-                    else:
-                        for sub in entry.iterdir():
-                            if sub.is_dir() and (sub / "chunks.json").exists():
-                                file_hashes.add(sub.name)
-                out = sorted(file_hashes)
+                parent_dirs = set()
+                for path in processed.rglob("chunks.json"):
+                    if path.is_file():
+                        d = path.parent
+                        if d != processed:
+                            parent_dirs.add(str(d.parent.relative_to(processed)).replace("\\", "/"))
+                out = sorted(parent_dirs) if parent_dirs else []
         elif step == "step4":
             emb = paths.embeddings_path()
             if emb.exists():
-                # 400_embeddings: <domain>/<file_hash>/ or (legacy) <file_hash>/
-                domain_names = []
-                file_hashes_flat = []
-                for entry in emb.iterdir():
-                    if not entry.is_dir() or entry.name.startswith("."):
-                        continue
-                    if (entry / "embedding.npy").exists():
-                        file_hashes_flat.append(entry.name)
-                    else:
-                        domain_names.append(entry.name)
-                out = sorted(domain_names) if domain_names else sorted(file_hashes_flat)
+                parent_dirs = set()
+                for path in emb.rglob("embedding.npy"):
+                    if path.is_file():
+                        d = path.parent
+                        if d != emb:
+                            parent_dirs.add(str(d.parent.relative_to(emb)).replace("\\", "/"))
+                out = sorted(parent_dirs) if parent_dirs else []
     except Exception:
         pass
     return out

@@ -1,6 +1,6 @@
 """
-Admission Agent - API compatible with Research Agent: /metadata, /data, /ask.
-Uses Qwen3 8b, data from collection "Admission" in Qdrant.
+Library Regulation Agent (Quy định hướng dẫn) - API compatible with Research Agent: /metadata, /data, /ask.
+Uses Qwen3 8b, data from collection "Library_TCTL" in Qdrant (Word: quy định, hướng dẫn thư viện).
 """
 
 import time
@@ -16,11 +16,11 @@ from lakeflow.services.ollama_embed_service import embed_batch
 from lakeflow.services.llm_chat_service import chat_completion
 from lakeflow.services.qdrant_service import get_client
 
-ADMISSION_COLLECTION = "Admission"
+LIBRARY_REGULATION_COLLECTION = "Library_TCTL"
 
 router = APIRouter(
-    prefix="/admission_agent/v1",
-    tags=["admission-agent"],
+    prefix="/library_regulation_agent/v1",
+    tags=["library-regulation-agent"],
 )
 
 
@@ -28,37 +28,38 @@ class AskRequest(BaseModel):
     session_id: str | None = None
     model_id: str | None = None
     user: str | None = None
-    prompt: str = Field(..., description="User's question")
+    prompt: str = Field(..., description="Câu hỏi của người dùng")
     context: dict | None = None
 
 
 @router.get("/metadata")
 def get_metadata() -> dict:
     """
-    Admission Agent metadata (compatible with Research agent).
+    Metadata trợ lý Quy định hướng dẫn.
     """
     return {
-        "name": "Admission Information",
-        "description": "Answer questions about admissions, enrollment regulations, and related documents. Data from Admission collection in Qdrant.",
+        "name": "Quy định hướng dẫn",
+        "description": "Tra cứu thông tin trong các file Word: giới thiệu chung, hướng dẫn nộp chuyên đề tốt nghiệp thạc sĩ, hướng dẫn tìm kiếm và khai thác thông tin, tài liệu hướng dẫn thư viện. Dữ liệu từ bộ sưu tập Library_TCTL trong Qdrant.",
         "version": "1.0.0",
         "developer": "LakeFlow",
-        "capabilities": ["admission", "enrollment", "regulations", "documents"],
+        "primary_language": "vi",
+        "capabilities": ["thư viện", "quy định", "hướng dẫn", "word", "luận văn", "tìm kiếm"],
         "supported_models": [
             {
                 "model_id": "qwen3:8b",
                 "name": "Qwen3 8B",
-                "description": "Ollama model for Q&A based on Admission documents",
+                "description": "Mô hình Ollama hỏi đáp dựa trên tài liệu quy định hướng dẫn (Word)",
                 "accepted_file_types": [],
             },
         ],
         "sample_prompts": [
-            "What is the total regular university enrollment quota for 2026?",
-            "What are the new CTTA programs in 2026 enrollment?",
-            "What is the AI enrollment quota for 2026?",
-            "List of high-quality (CLC) programs for 2026 enrollment?",
+            "Hướng dẫn nộp chuyên đề tốt nghiệp thạc sĩ như thế nào?",
+            "Cách tìm kiếm và khai thác thông tin thư viện?",
+            "Quy định về nộp luận văn?",
+            "Tài liệu hướng dẫn sử dụng thư viện có những nội dung gì?",
         ],
         "provided_data_types": [
-            {"type": "qdrant_collection", "description": "Admission collection in Qdrant"},
+            {"type": "qdrant_collection", "description": "Bộ sưu tập Library_TCTL trong Qdrant (nguồn Word)"},
         ],
         "contact": "",
         "status": "active",
@@ -103,40 +104,40 @@ def _collect_sources_from_collection(collection: str, limit: int = 500) -> list[
 @router.get("/data")
 def get_data(limit: int = Query(100, ge=1, le=500)):
     """
-    List of data sources from Admission collection.
+    Danh sách nguồn dữ liệu từ bộ sưu tập Library_TCTL.
     """
     try:
         client = get_client(None)
-        client.get_collection(ADMISSION_COLLECTION)
+        client.get_collection(LIBRARY_REGULATION_COLLECTION)
     except Exception as e:
         raise HTTPException(
             status_code=503,
             detail=i18n_detail(
-                "admission.collection_not_exist",
-                collection=ADMISSION_COLLECTION,
+                "library_regulation.collection_not_exist",
+                collection=LIBRARY_REGULATION_COLLECTION,
                 error=str(e),
             ),
         )
-    sources = _collect_sources_from_collection(ADMISSION_COLLECTION, limit=limit)
+    sources = _collect_sources_from_collection(LIBRARY_REGULATION_COLLECTION, limit=limit)
     return {"sources": sources, "count": len(sources)}
 
 
 @router.post("/ask")
 def ask(req: AskRequest):
     """
-    RAG: Retrieve relevant passages from Admission collection, call LLM to answer.
+    RAG: Lấy đoạn tài liệu liên quan từ bộ sưu tập Library_TCTL, gọi LLM trả lời.
     """
     prompt = req.prompt.strip()
     if not prompt:
-        raise HTTPException(status_code=400, detail=i18n_detail("admission.prompt_empty"))
+        raise HTTPException(status_code=400, detail=i18n_detail("library_regulation.prompt_empty"))
 
-    # 1. Embed query (using Ollama qwen3-embedding - matches Admission collection)
+    # 1. Embed query
     expanded = canonicalize_text(prompt)
     query_vector = embed_batch([expanded])[0]
 
     # 2. Search Qdrant
     base = get_qdrant_url(None)
-    url = f"{base}/collections/{ADMISSION_COLLECTION}/points/search"
+    url = f"{base}/collections/{LIBRARY_REGULATION_COLLECTION}/points/search"
     payload = {
         "vector": query_vector,
         "limit": 8,
@@ -150,7 +151,7 @@ def ask(req: AskRequest):
     except requests.RequestException as exc:
         raise HTTPException(
             status_code=503,
-            detail=i18n_detail("admission.qdrant_search_failed", error=str(exc)),
+            detail=i18n_detail("library_regulation.qdrant_search_failed", error=str(exc)),
         )
 
     data = resp.json()
@@ -160,7 +161,7 @@ def ask(req: AskRequest):
         return {
             "session_id": req.session_id,
             "status": "success",
-            "content_markdown": "According to the provided documents, there is no information to answer this question.",
+            "content_markdown": "Theo các tài liệu được cung cấp, không có thông tin để trả lời câu hỏi này.",
             "meta": {"model": LLM_MODEL},
             "attachments": [],
         }
@@ -181,25 +182,25 @@ def ask(req: AskRequest):
         })
 
     context_block = "\n\n".join(
-        f"[ {i+1}]:\n{t}" for i, t in enumerate(context_texts)
+        f"[Đoạn {i+1}]:\n{t}" for i, t in enumerate(context_texts)
     )
 
-    system_prompt = """Ban dang tham gia mot demo RAG (Retrieval-Augmented Generation). Nhiem vu cua ban la tra loi cau hoi CHI dua tren cac doan tai lieu duoc cung cap ben duoi.
+    system_prompt = """Bạn đang tham gia một demo RAG (Quy định hướng dẫn thư viện). Nhiệm vụ của bạn là trả lời câu hỏi CHỈ dựa trên các đoạn tài liệu được cung cấp bên dưới.
 
-QUY TAC BAT BUOC:
-- Chi duoc tra loi dua tren noi dung trong cac doan tai lieu do. Khong dung kien thuc ben ngoai, khong suy doan them.
-- Neu cau tra loi co trong tai lieu: trich dan hoac tom tat tu tai lieu mot cach chinh xac, tra loi bang tieng Viet.
-- Neu tai lieu khong chua thong tin de tra loi cau hoi: hay noi ro "Theo cac tai lieu duoc cung cap, khong co thong tin de tra loi cau hoi nay." va khong bia dap an.
-- Tra loi ngan gon, ro rang, bang tieng Viet."""
+QUY TẮC BẮT BUỘC:
+- Chỉ được trả lời dựa trên nội dung trong các đoạn tài liệu đó. Không dùng kiến thức bên ngoài, không suy đoán thêm.
+- Nếu câu trả lời có trong tài liệu: trích dẫn hoặc tóm tắt từ tài liệu một cách chính xác, trả lời bằng tiếng Việt.
+- Nếu tài liệu không chứa thông tin để trả lời câu hỏi: hãy nói rõ "Theo các tài liệu được cung cấp, không có thông tin để trả lời câu hỏi này." và không bịa đáp án.
+- Trả lời ngắn gọn, rõ ràng, bằng tiếng Việt."""
 
-    user_prompt = f"""Cac doan tai lieu dung de tra loi - CHI dua vao day:
+    user_prompt = f"""Các đoạn tài liệu dùng để trả lời - CHỈ dựa vào đây:
 
 {context_block}
 
 ---
-Cau hoi: {prompt}
+Câu hỏi: {prompt}
 
-Tra loi (chi dua tren tai lieu tren):"""
+Trả lời (chỉ dựa trên tài liệu trên):"""
 
     t0 = time.time()
     try:
@@ -214,18 +215,17 @@ Tra loi (chi dua tren tai lieu tren):"""
     except requests.RequestException as exc:
         raise HTTPException(
             status_code=500,
-            detail=i18n_detail("admission.llm_api_failed", error=str(exc)),
+            detail=i18n_detail("library_regulation.llm_api_failed", error=str(exc)),
         )
     except (KeyError, IndexError) as exc:
         raise HTTPException(
             status_code=500,
-            detail=i18n_detail("admission.invalid_llm_response", error=str(exc)),
+            detail=i18n_detail("library_regulation.invalid_llm_response", error=str(exc)),
         )
 
     response_time_ms = int((time.time() - t0) * 1000)
     tokens_used = None
 
-    # Format compatible with Research Chat: content_markdown only
     return {
         "session_id": req.session_id,
         "status": "success",

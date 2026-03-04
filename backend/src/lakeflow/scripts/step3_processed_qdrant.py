@@ -82,18 +82,18 @@ def main():
 
     ingested = skipped = failed = 0
 
-    # 400_embeddings: <domain>/<file_hash>/ or (legacy) <file_hash>/
-    # Use nas_safe_* to avoid Errno 35 (resource deadlock) on NAS/shared volumes
+    # 400_embeddings: <parent_dir>/<file_hash>/ (nested); recursive walk with nas_safe_* to avoid Errno 35 on NAS
     def iter_embeddings_entries():
-        for entry in nas_safe_listdir(embeddings_root):
-            if not nas_safe_is_dir(entry) or entry.name.startswith("."):
-                continue
-            if nas_safe_exists(entry / "embedding.npy"):
-                yield entry  # legacy: embeddings_root/file_hash/
-            else:
-                for sub in nas_safe_listdir(entry):
-                    if nas_safe_is_dir(sub) and nas_safe_exists(sub / "embedding.npy"):
-                        yield sub  # new: embeddings_root/domain/file_hash/
+        stack = [embeddings_root]
+        while stack:
+            d = stack.pop()
+            for entry in nas_safe_listdir(d):
+                if not nas_safe_is_dir(entry) or entry.name.startswith("."):
+                    continue
+                if nas_safe_exists(entry / "embedding.npy"):
+                    yield entry
+                else:
+                    stack.append(entry)
 
     emb_dirs = list(iter_embeddings_entries())
     print(f"[DEBUG] Found {len(emb_dirs)} embedding dirs")
@@ -102,18 +102,18 @@ def main():
 
     for emb_dir in emb_dirs:
         file_hash = emb_dir.name
-        parent_name = emb_dir.parent.name if emb_dir.parent != embeddings_root else None
-        rel_path = f"{parent_name}/{file_hash}" if parent_name else file_hash
+        parent_dir = str(emb_dir.parent.relative_to(embeddings_root)).replace("\\", "/") if emb_dir.parent != embeddings_root else ""
+        rel_path = f"{parent_dir}/{file_hash}" if parent_dir else file_hash
 
-        # Filter by selected tree folder: domain, domain/file_hash, or file_hash (legacy)
+        # Filter by selected tree folder
         if only_folders_set is not None:
             if rel_path in only_folders_set:
                 pass
             elif any(rel_path.startswith(p + "/") for p in only_folders_set):
                 pass
-            elif parent_name and parent_name in only_folders_set:
+            elif parent_dir and parent_dir in only_folders_set:
                 pass
-            elif not parent_name and file_hash in only_folders_set:
+            elif not parent_dir and file_hash in only_folders_set:
                 pass
             else:
                 continue
@@ -146,7 +146,7 @@ def main():
                 embeddings_dir=emb_dir,
                 processed_root=processed_root,
                 collection_name=collection_name,
-                parent_dir=parent_name,
+                parent_dir=parent_dir or None,
             )
 
             print(

@@ -107,15 +107,19 @@ def scan_inbox(
         if len(parts) < 2:
             # file directly under 000_inbox (no domain)
             domain = "unknown"
+            relative_dir = "unknown"
             print(
                 f"[INBOX][WARN] File without domain folder: {path}"
             )
         else:
             domain = parts[0]
+            # Full path of parent dir relative to inbox (preserves subfolders)
+            relative_dir = str(relative.parent).replace("\\", "/")
 
-        print(f"[INBOX][FILE] Domain={domain} Path={path}")
+        print(f"[INBOX][FILE] Domain={domain} RelativeDir={relative_dir} Path={path}")
 
         yield InboxFile(
             path=path,
             domain=domain,
+            relative_dir=relative_dir,
         )

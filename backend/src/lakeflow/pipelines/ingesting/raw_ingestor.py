@@ -37,7 +37,13 @@ class RawIngestor:
             return
 
         ext = src.suffix
-        raw_path = self.raw_root / domain / f"{file_hash}{ext}"
+        # Preserve folder structure: raw_root / relative_dir / <hash>.<ext>
+        raw_parent = (
+            inbox_file.relative_dir
+            if inbox_file.relative_dir and inbox_file.relative_dir not in (".", "")
+            else inbox_file.domain
+        )
+        raw_path = self.raw_root / raw_parent / f"{file_hash}{ext}"
         now = datetime.utcnow().isoformat()
 
         # ---------- DEDUP (skip if force) ----------
