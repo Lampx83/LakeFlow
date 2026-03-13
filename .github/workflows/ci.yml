@@ -25,7 +25,7 @@ jobs:
         run: pip install ruff
 
       - name: Lint (Ruff)
-        run: ruff check lake-flow/src lake-flow-ui
+        run: ruff check backend/src frontend/streamlit
         continue-on-error: true  # CI still passes while lint errors remain; remove when all fixed
 
   build-backend:
@@ -37,7 +37,7 @@ jobs:
       - name: Build backend image
         env:
           DOCKER_BUILDKIT: "1"
-        run: docker build -t lakeflow-backend:ci ./lake-flow
+        run: docker build -t lakeflow-backend:ci ./backend
 
   build-frontend:
     name: Build Frontend Docker
@@ -48,4 +48,4 @@ jobs:
       - name: Build frontend image
         env:
           DOCKER_BUILDKIT: "1"
-        run: docker build -t lakeflow-frontend:ci -f lake-flow-ui/Dockerfile ./lake-flow-ui
+        run: docker build -t lakeflow-frontend:ci ./frontend/streamlit

@@ -2,25 +2,27 @@ from pathlib import Path
 from typing import Optional
 
 
-def find_raw_file(file_hash: str, raw_root: Path) -> Optional[Path]:
+def find_raw_file(file_hash: str, raw_root: Path, parent_dir: Optional[str] = None) -> Optional[Path]:
     """
-    Tìm file raw theo hash trong 100_raw.
+    Find raw file by hash in 100_raw.
 
-    Cấu trúc:
-        100_raw/<domain>/<file_hash>.<ext>
+    Structure:
+        100_raw/<parent_dir>/<file_hash>.<ext>  (parent_dir can be nested, e.g. "Library/Quy định hướng dẫn")
 
-    Trả về Path nếu tìm thấy, None nếu không.
+    If parent_dir is given, look only in raw_root / parent_dir.
+    Otherwise search recursively under raw_root.
+    Returns Path if found, None otherwise.
     """
-
-    for domain_dir in raw_root.iterdir():
-        if not domain_dir.is_dir():
-            continue
-
-        for path in domain_dir.iterdir():
-            if not path.is_file():
-                continue
-
-            if path.stem == file_hash:
+    if parent_dir:
+        search_dir = raw_root / parent_dir
+        if not search_dir.is_dir():
+            return None
+        for path in search_dir.iterdir():
+            if path.is_file() and path.stem == file_hash:
                 return path
+        return None
 
+    for path in raw_root.rglob("*"):
+        if path.is_file() and path.stem == file_hash:
+            return path
     return None

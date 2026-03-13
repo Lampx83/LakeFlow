@@ -1,7 +1,7 @@
-# Deploy lên server Ubuntu mỗi khi push lên main
-# Secrets bắt buộc: DEPLOY_HOST, DEPLOY_USER, SSH_PRIVATE_KEY
-# Tùy chọn: DEPLOY_SSH_PORT, DEPLOY_REPO_DIR, OPENAI_API_KEY (ghi vào .env trên server khi deploy)
-# Trên server: file .env phải có (API_BASE_URL, QDRANT_HOST, ...). OPENAI_API_KEY từ GitHub Secret sẽ được ghi vào .env nếu khai báo.
+# Deploy to Ubuntu server on every push to main
+# Required secrets: DEPLOY_HOST, DEPLOY_USER, SSH_PRIVATE_KEY
+# Optional: DEPLOY_SSH_PORT, DEPLOY_REPO_DIR, OPENAI_API_KEY (written to .env on server when deploying)
+# On server: .env must have (API_BASE_URL, QDRANT_HOST, ...). OPENAI_API_KEY from GitHub Secret is written to .env if set.
 
 name: Deploy
 
@@ -30,7 +30,11 @@ jobs:
             set -e
             REPO_DIR="${REPO_DIR:-$HOME/lakeflow}"
             cd "$REPO_DIR"
+            # Preserve .env before pull (it may have local changes; merge would overwrite/remove it)
+            [ -f .env ] && cp .env .env.deploy.bak
+            git checkout -- .env 2>/dev/null || true
             git pull origin main
+            [ -f .env.deploy.bak ] && mv .env.deploy.bak .env
             export LAKEFLOW_DATA_PATH=/datalake/research
             if [ -n "${OPENAI_API_KEY:-}" ]; then
               touch .env
@@ -43,7 +47,7 @@ jobs:
               mv .env.tmp .env
               echo "LLM_BASE_URL=${LLM_BASE_URL}" >> .env
             fi
-            # Backend Dockerfile cần BuildKit (torch CPU trước, cache mount). Bắt buộc để không tải CUDA ~2GB.
+            # Backend Dockerfile needs BuildKit (torch CPU first, cache mount). Required to avoid pulling CUDA ~2GB.
             export DOCKER_BUILDKIT=1
             export COMPOSE_DOCKER_CLI_BUILD=1
             docker compose -f docker-compose.yml -f docker-compose.deploy.yml down

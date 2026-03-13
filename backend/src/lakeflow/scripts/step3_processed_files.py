@@ -14,15 +14,11 @@ from lakeflow.pipelines.embedding.pipeline import run_embedding_pipeline
 from lakeflow.config import paths
 
 
-# ======================================================
-# BOOTSTRAP RUNTIME CONFIG (BẮT BUỘC)
-# ======================================================
-
-data_base = os.getenv("LAKEFLOW_DATA_BASE_PATH")
+data_base = os.getenv("LAKE_ROOT")
 if not data_base:
     raise RuntimeError(
-        "LAKEFLOW_DATA_BASE_PATH is not set. "
-        "Example: export LAKEFLOW_DATA_BASE_PATH=/path/to/data_lake"
+        "LAKE_ROOT is not set. "
+        "Example: export LAKE_ROOT=/path/to/data_lake"
     )
 
 base_path = Path(data_base).expanduser().resolve()
@@ -30,10 +26,6 @@ runtime_config.set_data_base_path(base_path)
 
 print(f"[BOOT] DATA_BASE_PATH3 = {base_path}")
 
-
-# ======================================================
-# MAIN
-# ======================================================
 
 def main():
     print("=== RUN 400_EMBEDDINGS PIPELINE ===")
@@ -50,24 +42,24 @@ def main():
     only_folders_env = os.getenv("PIPELINE_ONLY_FOLDERS")
     only_folders = [s.strip() for s in (only_folders_env or "").split(",") if s.strip()] or None
     force_rerun = os.getenv("PIPELINE_FORCE_RERUN") == "1"
+    embed_model = os.getenv("PIPELINE_EMBED_MODEL", "").strip() or None
+    if embed_model:
+        print(f"[EMBEDDING] Using model: {embed_model}")
     if only_folders:
-        print(f"[EMBEDDING] Chỉ chạy các thư mục: {only_folders}")
+        print(f"[EMBEDDING] Running only folders: {only_folders}")
     if force_rerun:
-        print("[EMBEDDING] Force re-run: chạy lại kể cả đã embed")
+        print("[EMBEDDING] Force re-run: run again even if already embedded")
 
     embedded = skipped = failed = 0
 
-    # 300_processed: <domain>/<file_hash>/ hoặc (cũ) <file_hash>/
+    # 300_processed: <parent_dir>/<file_hash>/ (nested, e.g. Library/Quy định hướng dẫn/file_hash)
     def iter_processed_entries():
-        for entry in processed_root.iterdir():
-            if not entry.is_dir() or entry.name.startswith("."):
+        for path in processed_root.rglob("chunks.json"):
+            if not path.is_file():
                 continue
-            if (entry / "chunks.json").exists():
-                yield entry  # cấu trúc cũ: processed_root/file_hash/
-            else:
-                for sub in entry.iterdir():
-                    if sub.is_dir() and (sub / "chunks.json").exists():
-                        yield sub  # cấu trúc mới: processed_root/domain/file_hash/
+            processed_dir = path.parent
+            if processed_dir != processed_root and processed_dir.is_dir():
+                yield processed_dir
 
     processed_dirs = list(iter_processed_entries())
     print(f"[DEBUG] Found {len(processed_dirs)} processed dirs")
@@ -76,18 +68,18 @@ def main():
 
     for processed_dir in processed_dirs:
         file_hash = processed_dir.name
-        parent_name = processed_dir.parent.name if processed_dir.parent != processed_root else None
-        rel_path = f"{parent_name}/{file_hash}" if parent_name else file_hash
+        parent_dir = str(processed_dir.parent.relative_to(processed_root)).replace("\\", "/") if processed_dir.parent != processed_root else ""
+        rel_path = f"{parent_dir}/{file_hash}" if parent_dir else file_hash
 
-        # Lọc theo thư mục đã chọn trên cây: domain, domain/file_hash, hoặc file_hash (cấu trúc cũ)
+        # Filter by selected tree folder
         if only_folders_set is not None:
             if rel_path in only_folders_set:
                 pass
             elif any(rel_path.startswith(p + "/") for p in only_folders_set):
                 pass
-            elif parent_name and parent_name in only_folders_set:
+            elif parent_dir and parent_dir in only_folders_set:
                 pass
-            elif not parent_name and file_hash in only_folders_set:
+            elif not parent_dir and file_hash in only_folders_set:
                 pass
             else:
                 continue
@@ -100,7 +92,8 @@ def main():
                 processed_dir=processed_dir,
                 embeddings_root=embeddings_root,
                 force=force_rerun,
-                parent_dir=parent_name or None,
+                parent_dir=parent_dir or None,
+                model=embed_model,
             )
 
             if result == "SKIPPED":

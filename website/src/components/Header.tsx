@@ -2,41 +2,25 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
+import {
+  BUILTIN_LOCALES,
+  getLocaleLabel,
+  getLocaleFlag,
+  type BuiltinLocale,
+} from "@/lib/i18n";
 
-const navItems = [
-  {
-    label: "Product",
-    href: "/#product",
-    children: [
-      { label: "Features", href: "/#product" },
-      { label: "Data Lake", href: "/#product" },
-      { label: "RAG & Embedding", href: "/#product" },
-      { label: "Docker", href: "/#product" },
-    ],
-  },
-  {
-    label: "Solutions",
-    href: "/#solutions",
-    children: [
-      { label: "For Developers", href: "/#solutions" },
-      { label: "For Data Teams", href: "/#solutions" },
-      { label: "Enterprise", href: "/#solutions" },
-    ],
-  },
-  {
-    label: "Developers",
-    href: "/#developers",
-    children: [
-      { label: "Quick Start", href: "/#hero" },
-      { label: "Documentation", href: "/docs" },
-      { label: "GitHub", href: "https://github.com/Lampx83/LakeFlow" },
-    ],
-  },
-  { label: "Docs", href: "/docs" },
+const navItems: { labelKey: string; href: string }[] = [
+  { labelKey: "header.navProduct", href: "/#product" },
+  { labelKey: "header.navSolutions", href: "/#solutions" },
+  { labelKey: "header.navDevelopers", href: "/#developers" },
+  { labelKey: "header.navDocs", href: "/docs" },
+  { labelKey: "header.navAIPortal", href: "https://ai-portal-nine.vercel.app" },
 ];
 
 export function Header() {
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const { t, locale, setLocale } = useLanguage();
+  const [langOpen, setLangOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0a0a0f]/95 backdrop-blur supports-[backdrop-filter]:bg-[#0a0a0f]/80">
@@ -52,80 +36,79 @@ export function Header() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
-          {navItems.map((item) =>
-            item.children ? (
-              <div
-                key={item.label}
-                className="relative"
-                onMouseEnter={() => setOpenDropdown(item.label)}
-                onMouseLeave={() => setOpenDropdown(null)}
-              >
-                <button
-                  className="flex items-center gap-0.5 rounded-md px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/5 hover:text-white"
-                  onClick={() => setOpenDropdown(openDropdown === item.label ? null : item.label)}
-                >
-                  {item.label}
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-                {openDropdown === item.label && (
-                  <div className="absolute left-0 top-full pt-1">
-                    <div className="min-w-[180px] rounded-lg border border-white/10 bg-[#111] py-1 shadow-xl">
-                      {item.children.map((child) => (
-                        <Link
-                          key={child.label}
-                          href={child.href}
-                          target={child.href.startsWith("http") ? "_blank" : undefined}
-                          rel={child.href.startsWith("http") ? "noopener noreferrer" : undefined}
-                          className="block px-4 py-2 text-sm text-white/80 hover:bg-white/5 hover:text-white"
-                          onClick={() => setOpenDropdown(null)}
-                        >
-                          {child.label}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="rounded-md px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/5 hover:text-white"
-              >
-                {item.label}
-              </Link>
-            )
-          )}
+          {navItems.map((item) => (
+            <Link
+              key={item.labelKey}
+              href={item.href}
+              target={item.href.startsWith("http") ? "_blank" : undefined}
+              rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
+              className="rounded-md px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/5 hover:text-white"
+            >
+              {t(item.labelKey)}
+            </Link>
+          ))}
         </nav>
 
         <div className="flex items-center gap-3">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setLangOpen((o) => !o)}
+              className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-white/70 hover:bg-white/5 hover:text-white"
+              aria-label={t("common.ariaLanguage")}
+              aria-expanded={langOpen}
+            >
+              <span className="text-lg leading-none" aria-hidden>
+                {getLocaleFlag(locale)}
+              </span>
+              <span className="font-medium">{getLocaleLabel(locale)}</span>
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {langOpen && (
+              <>
+                <div className="fixed inset-0 z-10" aria-hidden onClick={() => setLangOpen(false)} />
+                <div className="absolute right-0 top-full z-20 mt-1 min-w-[160px] rounded-lg border border-white/10 bg-[#111] py-1 shadow-xl">
+                  {BUILTIN_LOCALES.map((loc) => (
+                    <button
+                      key={loc}
+                      type="button"
+                      onClick={() => {
+                        setLocale(loc as BuiltinLocale);
+                        setLangOpen(false);
+                      }}
+                      className={`flex w-full items-center gap-2 px-4 py-2 text-left text-sm transition ${
+                        locale === loc
+                          ? "bg-brand-500/20 text-brand-400"
+                          : "text-white/80 hover:bg-white/5 hover:text-white"
+                      }`}
+                    >
+                      <span className="text-lg leading-none" aria-hidden>
+                        {getLocaleFlag(loc)}
+                      </span>
+                      {getLocaleLabel(loc)}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
           <a
             href="https://github.com/Lampx83/LakeFlow"
             target="_blank"
             rel="noopener noreferrer"
             className="hidden items-center gap-1.5 rounded-md px-3 py-2 text-sm text-white/70 hover:text-white sm:flex"
-            aria-label="GitHub"
+            aria-label={t("common.ariaGitHub")}
           >
             <GitHubIcon className="h-5 w-5" />
-            <span>GitHub</span>
+            <span>{t("header.navGitHub")}</span>
           </a>
           <Link
             href="/#hero"
             className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-400"
           >
-            Get Started
+            {t("header.getStarted")}
           </Link>
         </div>
       </div>

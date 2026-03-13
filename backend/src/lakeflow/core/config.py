@@ -58,20 +58,20 @@ QDRANT_API_KEY = os.getenv(
 QDRANT_URL = f"http://{QDRANT_HOST}:{QDRANT_PORT}"
 
 # =====================================================
-# LLM (Q&A / RAG) – Ollama proxy (mặc định) hoặc OpenAI
+# LLM (Q&A / RAG) – Ollama proxy (default) or OpenAI
 # =====================================================
-# Mặc định: Ollama qua Research (LLM_BASE_URL + LLM_MODEL), không cần API key.
-# Để dùng OpenAI: set OPENAI_API_KEY (và tùy chọn OPENAI_BASE_URL, OPENAI_MODEL).
+# Default: Ollama via Research (LLM_BASE_URL + LLM_MODEL), no API key needed.
+# To use OpenAI: set OPENAI_API_KEY (and optionally OPENAI_BASE_URL, OPENAI_MODEL).
 
 _llm_base = (os.getenv("LLM_BASE_URL") or os.getenv("OLLAMA_BASE_URL") or "").strip()
 _openai_base = (os.getenv("OPENAI_BASE_URL") or "").strip()
-LLM_BASE_URL = _llm_base or _openai_base or "https://research.neu.edu.vn/ollama"
+LLM_BASE_URL = _llm_base or _openai_base
 LLM_MODEL = (os.getenv("LLM_MODEL") or os.getenv("OPENAI_MODEL") or "qwen3:8b").strip()
 OPENAI_API_KEY = (os.getenv("OPENAI_API_KEY") or "").strip()
 
 
 def get_qdrant_url(override: str | None = None) -> str:
-    """URL Qdrant dùng cho request: override nếu có, không thì dùng env (mặc định dev=localhost:6333, docker=lakeflow-qdrant:6333 qua QDRANT_HOST)."""
+    """Qdrant URL for requests: use override if provided, else env (default dev=localhost:6333, docker=lakeflow-qdrant:6333 via QDRANT_HOST)."""
     if override and (s := override.strip()):
         return s if s.startswith("http://") or s.startswith("https://") else f"http://{s}"
     return QDRANT_URL

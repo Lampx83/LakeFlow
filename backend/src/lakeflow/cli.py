@@ -84,7 +84,11 @@ def run_docker(target_dir: Path) -> None:
 def main() -> None:
     print("\n  LakeFlow — Data Lake pipelines for RAG & AI\n")
 
-    project_name = sys.argv[1] if len(sys.argv) > 1 else None
+    args = [a for a in sys.argv[1:] if a.strip()]
+    # Support "lakeflow init my-app" (init is subcommand) or "lakeflow my-app"
+    if args and args[0].lower() == "init":
+        args = args[1:]
+    project_name = args[0] if args else None
     if not project_name or not project_name.strip():
         project_name = ask_folder("Project folder name?", "lakeflow-app")
         if not project_name:
@@ -106,6 +110,13 @@ def main() -> None:
     website_dir = target_dir / "website"
     if website_dir.exists():
         shutil.rmtree(website_dir)
+
+    # Ensure .env exists so "docker compose up" works (copy from .env.example if needed)
+    env_file = target_dir / ".env"
+    env_example = target_dir / ".env.example"
+    if not env_file.exists() and env_example.exists():
+        shutil.copy2(env_example, env_file)
+        print("  Created .env from .env.example.")
 
     print(f"  Created {project_name}.")
 

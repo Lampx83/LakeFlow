@@ -4,13 +4,13 @@ from typing import Optional
 
 def find_processed_dir(processed_root: Path, file_hash: str) -> Optional[Path]:
     """
-    Tìm thư mục processed theo file_hash trong 300_processed.
+    Find processed directory by file_hash in 300_processed.
 
-    Cấu trúc:
-        300_processed/<file_hash>/  (cũ, phẳng)
-        300_processed/<domain>/<file_hash>/  (mới)
+    Structure:
+        300_processed/<file_hash>/  (legacy, flat)
+        300_processed/<domain>/<file_hash>/  (new)
 
-    Trả về Path đến thư mục chứa chunks.json nếu tìm thấy, None nếu không.
+    Returns Path to directory containing chunks.json if found, None otherwise.
     """
 
     flat_dir = processed_root / file_hash

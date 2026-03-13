@@ -1,7 +1,7 @@
 [client]
 showSidebarNavigation = false
 
-# Dev: tự rerun khi lưu file; không tự mở tab mới (chỉ cần refresh tab hiện tại)
+# Dev: auto rerun on file save; don't auto-open new tab (just refresh current tab)
 [server]
 runOnSave = true
 fileWatcherType = "poll"

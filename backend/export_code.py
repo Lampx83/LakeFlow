@@ -1,21 +1,21 @@
 import os
 
-# ================== CẤU HÌNH ==================
-PROJECT_ROOT = "."                 # Thư mục gốc dự án
-OUTPUT_FILE = "project_code.txt"  # File xuất code
+# ================== CONFIG ==================
+PROJECT_ROOT = "."                 # Project root directory
+OUTPUT_FILE = "project_code.txt"  # Output code file
 
-# Thư mục không duyệt
+# Directories to skip
 EXCLUDE_DIRS = {
     ".git", "__pycache__", "venv", ".venv",
     "env", "node_modules", ".idea", ".vscode",
 }
 
-# File Python không export
+# Python files not to export
 EXCLUDE_FILES = {
     "__init__.py", "export_code.py",
 }
 
-# File đặc biệt cần export (không phải .py)
+# Extra files to export (non-.py)
 EXTRA_FILES = {
     "requirements.txt",
     "docker-compose.yml",
@@ -31,11 +31,11 @@ def should_skip_dir(dir_name: str) -> bool:
 
 
 def should_export_file(file_name: str) -> bool:
-    # Export file .py (trừ file bị loại)
+    # Export .py files (except excluded)
     if file_name.endswith(".py"):
         return file_name not in EXCLUDE_FILES
 
-    # Export file đặc biệt
+    # Export extra files
     if file_name in EXTRA_FILES:
         return True
 
@@ -45,7 +45,7 @@ def should_export_file(file_name: str) -> bool:
 def export_project_code():
     with open(OUTPUT_FILE, "w", encoding="utf-8") as out:
         for root, dirs, files in os.walk(PROJECT_ROOT):
-            # Loại bỏ các thư mục không cần duyệt
+            # Skip directories that should not be traversed
             dirs[:] = [d for d in dirs if not should_skip_dir(d)]
 
             for file in files:
@@ -65,7 +65,7 @@ def export_project_code():
                 except Exception as e:
                     out.write(f"# ERROR reading file: {e}\n")
 
-    print(f"✅ Đã xuất toàn bộ code ra file: {OUTPUT_FILE}")
+    print(f"✅ Exported all code to file: {OUTPUT_FILE}")
 
 
 if __name__ == "__main__":

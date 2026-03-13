@@ -15,7 +15,7 @@ except ImportError:
 
 
 class StagingError(RuntimeError):
-    """Lỗi staging với lý do rõ ràng."""
+    """Staging error with clear reason."""
 
 
 def _resolve(obj):
@@ -30,22 +30,22 @@ def _resolve(obj):
 def analyze_pdf(path: Path) -> dict:
     path = Path(path)
     if not path.exists():
-        raise StagingError(f"File không tồn tại: {path}")
+        raise StagingError(f"File does not exist: {path}")
     if not path.is_file():
-        raise StagingError(f"Đường dẫn không phải file: {path}")
+        raise StagingError(f"Path is not a file: {path}")
 
     try:
         reader = PdfReader(str(path))
     except (PdfReadError, PdfStreamError) as e:
         msg = str(e).strip()
         if "encrypt" in msg.lower() or "password" in msg.lower():
-            raise StagingError(f"PDF bị mã hóa hoặc yêu cầu mật khẩu: {msg}") from e
+            raise StagingError(f"PDF is encrypted or password-protected: {msg}") from e
         if "%PDF-" in msg or "expected" in msg.lower():
-            raise StagingError(f"File không đúng định dạng PDF (có thể hỏng hoặc không phải PDF): {msg}") from e
-        raise StagingError(f"Đọc PDF thất bại: {msg}") from e
+            raise StagingError(f"File is not valid PDF format (may be corrupted or not a PDF): {msg}") from e
+        raise StagingError(f"Failed to read PDF: {msg}") from e
     except Exception as e:
         msg = str(e).strip()
-        raise StagingError(f"Lỗi phân tích PDF: {msg}") from e
+        raise StagingError(f"PDF analysis error: {msg}") from e
 
     page_count = len(reader.pages)
     text_pages = 0
@@ -66,7 +66,7 @@ def analyze_pdf(path: Path) -> dict:
                 if isinstance(xobjects, DictionaryObject):
                     image_pages += 1
     except Exception as e:
-        raise StagingError(f"Lỗi khi đọc trang PDF: {e}") from e
+        raise StagingError(f"Error reading PDF page: {e}") from e
 
     has_text_layer = text_pages > 0
     is_scanned_pdf = not has_text_layer

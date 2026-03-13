@@ -1,8 +1,8 @@
-# file này
-#   - Kết nối Qdrant
-#   - List collection
+# This file:
+#   - Connect to Qdrant
+#   - List collections
 #   - Scroll/filter points
-#   - Trả metadata
+#   - Return metadata
 # ==================================
 from typing import Any, Dict, List, Optional
 
@@ -18,7 +18,7 @@ _client: Optional[QdrantClient] = None
 
 
 def get_client(qdrant_url: Optional[str] = None) -> QdrantClient:
-    """Client Qdrant. Nếu qdrant_url truyền vào thì dùng URL đó (không cache); không thì dùng mặc định từ env."""
+    """Qdrant client. If qdrant_url provided, use it (no cache); else use default from env."""
     global _client
     if qdrant_url and (s := qdrant_url.strip()):
         url = s if s.startswith("http://") or s.startswith("https://") else f"http://{s}"
@@ -37,7 +37,7 @@ def get_client(qdrant_url: Optional[str] = None) -> QdrantClient:
 
 def list_collections(qdrant_url: Optional[str] = None) -> List[Dict[str, Any]]:
     """
-    Danh sách collections trong Qdrant
+    List collections in Qdrant.
     """
     client = get_client(qdrant_url)
     resp = client.get_collections()
@@ -52,7 +52,7 @@ def list_collections(qdrant_url: Optional[str] = None) -> List[Dict[str, Any]]:
 
 def _infer_payload_schema(client: QdrantClient, collection: str, sample_size: int = 200) -> Dict[str, str]:
     """
-    Suy luận schema payload từ mẫu points (key -> kiểu: string, integer, number, boolean, array, object).
+    Infer payload schema from sample points (key -> type: string, integer, number, boolean, array, object).
     """
     schema: Dict[str, str] = {}
     try:
@@ -89,7 +89,7 @@ def _infer_payload_schema(client: QdrantClient, collection: str, sample_size: in
             if key not in schema:
                 schema[key] = t
             elif schema[key] != t:
-                # Nhiều kiểu khác nhau → dùng union hoặc "string" an toàn
+                # Multiple types → use union or safe "string"
                 schema[key] = "string"
     return schema
 
@@ -101,7 +101,7 @@ def get_collection_detail(name: str, qdrant_url: Optional[str] = None) -> Dict[s
     vectors = {}
     params = info.config.params.vectors
 
-    # Trường hợp 1: single vector
+    # Case 1: single vector
     if hasattr(params, "size"):
         vectors = {
             "default": {
@@ -110,7 +110,7 @@ def get_collection_detail(name: str, qdrant_url: Optional[str] = None) -> Dict[s
             }
         }
 
-    # Trường hợp 2: named vectors
+    # Case 2: named vectors
     elif isinstance(params, dict):
         for k, v in params.items():
             vectors[k] = {
@@ -145,7 +145,7 @@ def list_points(
     qdrant_url: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """
-    Duyệt points theo offset/limit (debug, inspector)
+    Browse points by offset/limit (debug, inspector).
     """
     client = get_client(qdrant_url)
 
@@ -154,7 +154,7 @@ def list_points(
         limit=limit,
         offset=offset,
         with_payload=True,
-        with_vectors=False,  # inspector: không cần vector
+        with_vectors=False,  # inspector: vector not needed
     )
 
     return [_serialize_point(p) for p in points]
@@ -223,7 +223,7 @@ def filter_points(
 
 def _serialize_point(p) -> Dict[str, Any]:
     """
-    Chuẩn hoá point để trả về API / UI
+    Serialize point for API / UI
     """
     return {
         "id": p.id,

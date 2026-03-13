@@ -7,7 +7,7 @@ _client: QdrantClient | None = None
 
 def get_qdrant_client() -> QdrantClient:
     """
-    Singleton Qdrant client cho toàn backend
+    Singleton Qdrant client for backend
     """
     global _client
     if _client is None:

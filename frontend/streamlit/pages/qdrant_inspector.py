@@ -12,29 +12,19 @@ from services.qdrant_service import (
     filter_points,
 )
 
-# =====================================================
-# CONFIG
-# =====================================================
-
 DEFAULT_PAGE_SIZE = 50
 MAX_PAGE_SIZE = 200
 
-# =====================================================
-# UI
-# =====================================================
 
 def render():
     if not require_login():
         return
 
     st.header("🧠 Qdrant Inspector")
-    st.caption("Trình duyệt embeddings (read-only) – phục vụ debug & kiểm tra dữ liệu")
+    st.caption("Embedding browser (read-only) – for debugging & data inspection")
 
     token = st.session_state.token
 
-    # -------------------------------------------------
-    # Qdrant Service
-    # -------------------------------------------------
     qdrant_opts = qdrant_service_options()
     qdrant_labels = [t[0] for t in qdrant_opts]
     qdrant_values = [t[1] for t in qdrant_opts]
@@ -43,32 +33,26 @@ def render():
         range(len(qdrant_labels)),
         format_func=lambda i: qdrant_labels[i],
         key="inspector_qdrant_svc",
-        help="Chọn Qdrant để inspect. Mặc định: localhost (dev) hoặc lakeflow-qdrant (docker).",
+        help="Select Qdrant to inspect. Default: localhost (dev) or lakeflow-qdrant (docker).",
     )
     qdrant_custom = st.text_input(
-        "Hoặc nhập địa chỉ Qdrant tùy chỉnh",
-        placeholder="http://host:6333 hoặc host:6333",
+        "Or enter custom Qdrant address",
+        placeholder="http://host:6333 or host:6333",
         key="inspector_qdrant_custom",
-        help="Nếu nhập URL ở đây, hệ thống sẽ dùng Qdrant này thay vì lựa chọn trên.",
+        help="If URL entered here, system uses this Qdrant instead of selection above.",
     )
     qdrant_url = normalize_qdrant_url(qdrant_custom) if (qdrant_custom and qdrant_custom.strip()) else qdrant_values[qdrant_idx]
 
-    # -------------------------------------------------
-    # LOAD COLLECTIONS
-    # -------------------------------------------------
     try:
         collections = list_collections(token, qdrant_url=qdrant_url)
     except Exception as exc:
-        st.error(f"Không lấy được danh sách collections: {exc}")
+        st.error(f"Failed to load collections list: {exc}")
         return
 
     if not collections:
-        st.info("Qdrant chưa có collection nào")
+        st.info("Qdrant has no collections yet")
         return
 
-    # -------------------------------------------------
-    # SELECT COLLECTION
-    # -------------------------------------------------
     col = st.selectbox(
         "📦 Collection",
         collections,
@@ -77,19 +61,16 @@ def render():
 
     col_name = col["name"]
 
-    # -------------------------------------------------
-    # COLLECTION DETAIL (SOURCE OF TRUTH)
-    # -------------------------------------------------
     try:
         detail = get_collection_detail(col_name, token, qdrant_url=qdrant_url)
     except Exception as exc:
-        st.error(f"Lỗi khi lấy collection detail: {exc}")
+        st.error(f"Error loading collection detail: {exc}")
         return
 
     st.subheader("📊 Collection Overview")
     st.caption(
-        "Thông tin tổng quan: **Points** = tổng số vector; **Indexed** = số vector đã index; **Segments** = số segment; "
-        "**Vector size** = chiều vector; **Distance** = hàm khoảng cách (Cosine, Euclid, …); **Status** = trạng thái collection."
+        "Overview: **Points** = total vectors; **Indexed** = indexed vectors; **Segments** = segment count; "
+        "**Vector size** = vector dimension; **Distance** = distance function (Cosine, Euclid, …); **Status** = collection status."
     )
 
     points_count = detail.get("points_count", 0)
@@ -117,19 +98,16 @@ def render():
 
     st.subheader("🧱 Payload Schema")
     st.caption(
-        "Cấu trúc metadata gắn với mỗi point (key → kiểu dữ liệu). Payload dùng để lọc và hiển thị, không dùng khi tính khoảng cách vector. "
-        "Schema được suy ra từ mẫu dữ liệu trong collection."
+        "Metadata structure attached to each point (key → data type). Payload used for filtering and display, not for vector distance. "
+        "Schema inferred from sample data in collection."
     )
     st.json(detail.get("payload_schema", {}))
 
-    # =================================================
-    # FILTER
-    # =================================================
     st.divider()
     st.subheader("🔍 Filter points (payload)")
     st.caption(
-        "Lọc points theo metadata (payload). Điền **file_hash**, **section_id** hoặc **chunk_id** rồi bật \"Áp dụng filter\" "
-        "để chỉ xem các point thỏa điều kiện; để trống = không lọc theo trường đó."
+        "Filter points by metadata (payload). Fill **file_hash**, **section_id** or **chunk_id** then enable \"Apply filter\" "
+        "to view only matching points; empty = no filter for that field."
     )
 
     f1, f2, f3 = st.columns(3)
@@ -148,43 +126,37 @@ def render():
             value=0,
         )
 
-    use_filter = st.checkbox("Áp dụng filter")
+    use_filter = st.checkbox("Apply filter")
 
-    # =================================================
-    # PAGINATION
-    # =================================================
     st.divider()
     st.subheader("📄 Browse points")
     st.caption(
-        "Duyệt points theo trang: **Số point / trang** = bao nhiêu bản ghi mỗi lần; "
-        "**Offset** = bỏ qua bao nhiêu point từ đầu collection rồi mới lấy. "
-        "Ví dụ: Offset 0 + 50/trang → trang 1; Offset 50 + 50/trang → trang 2."
+        "Browse points by page: **Points per page** = records per load; "
+        "**Offset** = how many points to skip from start before fetching. "
+        "e.g.: Offset 0 + 50/page → page 1; Offset 50 + 50/page → page 2."
     )
 
     p1, p2 = st.columns(2)
 
     with p1:
         limit = st.slider(
-            "Số point / trang",
+            "Points per page",
             min_value=10,
             max_value=MAX_PAGE_SIZE,
             value=DEFAULT_PAGE_SIZE,
             step=10,
-            help="Số point tối đa trả về mỗi lần (kích thước trang).",
+            help="Max points returned per request (page size).",
         )
 
     with p2:
         offset = st.number_input(
-            "Offset (bỏ qua N point đầu)",
+            "Offset (skip N points from start)",
             min_value=0,
             step=limit,
             value=0,
-            help="Số point bỏ qua từ đầu collection trước khi lấy. Offset=0 là trang 1, Offset=limit là trang 2, Offset=2×limit là trang 3, ...",
+            help="Points to skip from start of collection before fetching. Offset=0 is page 1, Offset=limit is page 2, Offset=2×limit is page 3, ...",
         )
 
-    # -------------------------------------------------
-    # LOAD POINTS
-    # -------------------------------------------------
     try:
         if use_filter:
             points = filter_points(
@@ -206,24 +178,20 @@ def render():
             )
 
     except Exception as exc:
-        st.error(f"Lỗi khi load points: {exc}")
+        st.error(f"Error loading points: {exc}")
         return
 
     if not points:
-        st.info("Không có point nào phù hợp")
+        st.info("No matching points")
         return
 
-    # =================================================
-    # TABLE VIEW
-    # =================================================
-    # Chiều vector lấy từ collection (mọi point trong collection cùng dimension; API không trả vector khi scroll)
     collection_vector_size = None
     if detail.get("vectors"):
         first_vec = next(iter(detail["vectors"].values()), None)
         if first_vec and "size" in first_vec:
             collection_vector_size = first_vec["size"]
 
-    # Thu thập mọi key payload (thứ tự ưu tiên rồi alphabet)
+    # Collect all payload keys (priority order then alphabet)
     known_order = ("file_hash", "chunk_id", "section_id", "token_estimate", "text", "content", "source")
     all_keys = set()
     for p in points:
@@ -238,8 +206,8 @@ def render():
         return (s[:max_len] + "…") if len(s) > max_len else s
 
     st.caption(
-        "Bảng hiển thị **id**, toàn bộ **payload** (text/content rút gọn 80 ký tự), **vector_dim**. "
-        "Chi tiết đầy đủ từng point ở phần bên dưới."
+        "Table shows **id**, full **payload** (text/content truncated to 80 chars), **vector_dim**. "
+        "Full detail per point below."
     )
     rows = []
     for p in points:
@@ -260,15 +228,12 @@ def render():
 
     st.dataframe(df, use_container_width=True)
 
-    # =================================================
-    # DETAIL VIEW
-    # =================================================
-    st.subheader("🔎 Chi tiết point")
+    st.subheader("🔎 Point detail")
 
     point_ids = [p["id"] for p in points]
 
     selected_id = st.selectbox(
-        "Chọn point",
+        "Select point",
         point_ids,
         format_func=lambda x: str(x),
     )
@@ -297,4 +262,4 @@ def render():
     with st.expander("🧠 Vector info"):
         st.write(f"Vector dimension: {collection_vector_size or selected_point.get('vector_size') or '—'}")
 
-    st.caption("⚠️ Vector raw không được hiển thị để đảm bảo hiệu năng & an toàn")
+    st.caption("⚠️ Raw vector not displayed for performance & safety")

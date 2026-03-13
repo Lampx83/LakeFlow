@@ -1,19 +1,13 @@
-# curl -X POST https://research.neu.edu.vn/ollama/api/embed \
-#   -H "Content-Type: application/json" \
-#   -d '{
-#     "model": "qwen3-embedding",
-#     "input": "Apple"
-#   }'
-
-print('adsf')
+# curl -X POST $LLM_BASE_URL/api/embed (xem .env LLM_BASE_URL)
 import requests
 import json
 
-url = "https://research.neu.edu.vn/ollama/api/embed"
+from lakeflow.services.ollama_embed_service import OLLAMA_EMBED_URL, EMBED_MODEL
 
+url = OLLAMA_EMBED_URL
 payload = {
-    "model": "qwen3-embedding",
-    "input": "Apple"
+    "model": EMBED_MODEL,
+    "input": ["Apple"]
 }
 
 headers = {
@@ -22,7 +16,7 @@ headers = {
 
 try:
     response = requests.post(url, headers=headers, json=payload)
-    response.raise_for_status()  # Báo lỗi nếu HTTP != 200
+    response.raise_for_status()  # Raise error if HTTP != 200
 
     data = response.json()
     print("Response JSON:")

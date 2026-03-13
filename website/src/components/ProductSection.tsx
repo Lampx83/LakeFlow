@@ -1,43 +1,18 @@
-const features = [
-  {
-    title: "Layered Data Lake",
-    description:
-      "Zones: 000_inbox → 100_raw → 200_staging → 300_processed → 400_embeddings → 500_catalog. Hash, dedup, and catalog.",
-    icon: "📁",
-  },
-  {
-    title: "Semantic Search",
-    description:
-      "Query in natural language. Results by cosine similarity. Qdrant vector store with configurable collection.",
-    icon: "🔍",
-  },
-  {
-    title: "Embedding API",
-    description:
-      "POST /search/embed for text→vector. Compatible with external RAG/LLM services. Sentence-transformers support.",
-    icon: "🧬",
-  },
-  {
-    title: "Streamlit Control UI",
-    description:
-      "Run pipelines, explore data lake, test search. Multi–Qdrant support. Dev mode for Pipeline Runner.",
-    icon: "🎛️",
-  },
-  {
-    title: "Docker-first",
-    description:
-      "Backend, frontend, Qdrant via Docker Compose. No Python install on host. Mac M1 venv for GPU (Metal/MPS).",
-    icon: "🐳",
-  },
-  {
-    title: "Python & FastAPI",
-    description:
-      "Built with Python 3.10+, FastAPI, sentence-transformers, and Qdrant. Easy to extend and integrate.",
-    icon: "🐍",
-  },
+"use client";
+
+import { useLanguage } from "@/contexts/LanguageContext";
+
+const featureKeys = [
+  { titleKey: "product.f1Title", descKey: "product.f1Desc", icon: "⚙️" },
+  { titleKey: "product.f2Title", descKey: "product.f2Desc", icon: "🖥️" },
+  { titleKey: "product.f3Title", descKey: "product.f3Desc", icon: "📁" },
+  { titleKey: "product.f4Title", descKey: "product.f4Desc", icon: "🔍" },
+  { titleKey: "product.f5Title", descKey: "product.f5Desc", icon: "🐳" },
+  { titleKey: "product.f6Title", descKey: "product.f6Desc", icon: "🐍" },
 ];
 
 export function ProductSection() {
+  const { t } = useLanguage();
   return (
     <section
       id="product"
@@ -46,23 +21,23 @@ export function ProductSection() {
       <div className="mx-auto max-w-7xl">
         <div className="text-center">
           <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Everything you need for Data Lake & RAG
+            {t("product.title")}
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-white/70">
-            Ingest, process, embed, and search. One pipeline for RAG, LLM, and analytics.
+            {t("product.subtitle")}
           </p>
         </div>
         <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((feature) => (
+          {featureKeys.map((f) => (
             <div
-              key={feature.title}
+              key={f.titleKey}
               className="rounded-xl border border-white/10 bg-white/5 p-6 transition hover:border-brand-500/30 hover:bg-white/[0.07]"
             >
-              <div className="text-2xl">{feature.icon}</div>
+              <div className="text-2xl">{f.icon}</div>
               <h3 className="mt-4 text-lg font-semibold text-white">
-                {feature.title}
+                {t(f.titleKey)}
               </h3>
-              <p className="mt-2 text-sm text-white/70">{feature.description}</p>
+              <p className="mt-2 text-sm text-white/70">{t(f.descKey)}</p>
             </div>
           ))}
         </div>

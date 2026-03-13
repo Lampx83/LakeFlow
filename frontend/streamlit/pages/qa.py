@@ -2,70 +2,26 @@
 
 import pandas as pd
 import streamlit as st
-from datetime import datetime
 
 from config.settings import qdrant_service_options, normalize_qdrant_url
-from services.api_client import qa, get_me
+from services.api_client import qa
 from services.qdrant_service import list_collections
 from state.session import require_login
-
-
-def _ensure_qa_history_by_user():
-    if "qa_history_by_user" not in st.session_state:
-        st.session_state.qa_history_by_user = {}
-
-
-def _current_username(token: str) -> str | None:
-    """Username của tài khoản đang đăng nhập (để chỉ hiển thị lịch sử của user này)."""
-    if "current_username" in st.session_state and st.session_state.current_username:
-        return st.session_state.current_username
-    me = get_me(token)
-    if me and me.get("username"):
-        st.session_state.current_username = me["username"]
-        return me["username"]
-    return None
 
 
 def render():
     if not require_login():
         return
 
-    _ensure_qa_history_by_user()
     token = st.session_state.token
-    current_user = _current_username(token)
 
-    st.header("🤖 Hỏi đáp với AI")
+    st.header("🤖 Q&A with AI")
     st.caption(
-        "**Demo RAG:** Tính năng này dùng để demo RAG (Retrieval-Augmented Generation). "
-        "Hệ thống (1) tìm các đoạn tài liệu liên quan (semantic search), (2) gửi làm context cho AI, "
-        "(3) AI **chỉ được trả lời dựa trên context được cung cấp** — không dùng kiến thức bên ngoài. "
-        "Nếu context không đủ, AI sẽ nói rõ không có thông tin. Trả lời bằng tiếng Việt."
+        "**Demo RAG:** This feature demos RAG (Retrieval-Augmented Generation). "
+        "The system (1) finds relevant document passages (semantic search), (2) sends them as context to the AI, "
+        "(3) AI **answers only based on the provided context** — no external knowledge. "
+        "If context is insufficient, the AI will clearly state there is no information. Answers in Vietnamese."
     )
-
-    # --------------------------------------------------
-    # Lịch sử trò chuyện (chỉ của tài khoản hiện tại)
-    # --------------------------------------------------
-    with st.expander("📜 Lịch sử trò chuyện", expanded=False):
-        if not current_user:
-            st.caption("Không xác định được tài khoản (token). Chỉ hiển thị lịch sử của phiên này.")
-            history_list = st.session_state.qa_history_by_user.get("__session__", [])
-        else:
-            st.caption(f"Lịch sử của tài khoản **{current_user}**.")
-            history_list = st.session_state.qa_history_by_user.get(current_user, [])
-        if not history_list:
-            st.info("Chưa có lịch sử. Hỏi AI để lưu vào đây.")
-        else:
-            for i, item in enumerate(reversed(history_list[-50:])):  # 50 gần nhất
-                raw_created = item.get("created_at", "")
-                created = str(raw_created)[:19] if raw_created else ""
-                raw_q = item.get("question", "") or ""
-                q = (raw_q[:60] + "...") if len(raw_q) > 60 else raw_q
-                label = f"{created} - {q}" if (created or q) else f"Lich su #{i+1}"
-                with st.expander(label, expanded=False, key=f"qa_history_{i}"):
-                    st.write("**Câu hỏi:**")
-                    st.write(item.get("question", ""))
-                    st.write("**Trả lời:**")
-                    st.markdown(item.get("answer", ""))
 
     # --------------------------------------------------
     # Qdrant Service + PARAMS
@@ -78,13 +34,13 @@ def render():
         range(len(qdrant_labels)),
         format_func=lambda i: qdrant_labels[i],
         key="qa_qdrant_svc",
-        help="Chọn Qdrant để tìm context. Mặc định: localhost (dev) hoặc lakeflow-qdrant (docker).",
+        help="Select Qdrant for context lookup. Default: localhost (dev) or lakeflow-qdrant (docker).",
     )
     qdrant_custom = st.text_input(
-        "Hoặc nhập địa chỉ Qdrant tùy chỉnh",
-        placeholder="http://host:6333 hoặc host:6333",
+        "Or enter custom Qdrant address",
+        placeholder="http://host:6333 or host:6333",
         key="qa_qdrant_custom",
-        help="Nếu nhập URL ở đây, hệ thống sẽ dùng Qdrant này thay vì lựa chọn trên.",
+        help="If you enter a URL here, the system will use this Qdrant instead of the selection above.",
     )
     qdrant_url = normalize_qdrant_url(qdrant_custom) if (qdrant_custom and qdrant_custom.strip()) else qdrant_values[qdrant_idx]
 
@@ -100,16 +56,16 @@ def render():
         collection_name = st.selectbox(
             "📦 Collection",
             collections,
-            help="Collection Qdrant chứa embeddings để tìm context.",
+            help="Qdrant collection containing embeddings for context lookup.",
         )
 
     with col2:
         top_k = st.slider(
-            "Số context (Top K)",
+            "Context count (Top K)",
             min_value=1,
             max_value=20,
             value=5,
-            help="Số đoạn tài liệu tối đa gửi làm context cho LLM.",
+            help="Max document passages to send as context to the LLM.",
         )
 
     with col3:
@@ -119,15 +75,15 @@ def render():
             max_value=2.0,
             value=0.7,
             step=0.1,
-            help="0 = chính xác, 2 = sáng tạo hơn.",
+            help="0 = precise, 2 = more creative.",
         )
 
     with col4:
-        use_threshold = st.checkbox("Ngưỡng điểm context", value=False)
+        use_threshold = st.checkbox("Context score threshold", value=False)
         score_threshold = None
         if use_threshold:
             score_threshold = st.slider(
-                "Score tối thiểu",
+                "Min score",
                 min_value=0.0,
                 max_value=1.0,
                 value=0.5,
@@ -136,18 +92,18 @@ def render():
             )
 
     question = st.text_area(
-        "Câu hỏi của bạn",
-        placeholder="Ví dụ: Quy định về kinh tế quốc dân? Điều kiện tuyển sinh? Chính sách học phí?",
+        "Your question",
+        placeholder="E.g.: Regulations on economics? Admission requirements? Tuition policy?",
         height=120,
         key="qa_question",
     )
 
     data_to_show = None
-    if st.button("🔍 Hỏi AI", type="primary"):
+    if st.button("🔍 Ask AI", type="primary"):
         if not question.strip():
-            st.warning("Vui lòng nhập câu hỏi")
+            st.warning("Please enter a question")
         else:
-            with st.spinner("Đang tìm context và gọi LLM..."):
+            with st.spinner("Finding context and calling LLM..."):
                 try:
                     data = qa(
                         question=question.strip(),
@@ -161,16 +117,17 @@ def render():
                     st.session_state.qa_last_result = data
                     st.session_state.qa_last_question = question.strip()
                     st.session_state.qa_feedback = None
-                    # Lưu vào lịch sử chỉ cho tài khoản hiện tại
-                    user_key = current_user if current_user else "__session__"
-                    st.session_state.qa_history_by_user.setdefault(user_key, []).append({
-                        "question": question.strip(),
-                        "answer": data.get("answer") or "",
-                        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                    })
                     data_to_show = data
                 except Exception as exc:
-                    st.error(f"Lỗi khi gọi API: {exc}")
+                    err_msg = str(exc)
+                    st.error(f"API error: {err_msg}")
+                    if "Curl to test:" in err_msg or "Curl that ran:" in err_msg:
+                        sep = "Curl to test:" if "Curl to test:" in err_msg else "Curl that ran:"
+                        parts = err_msg.split(sep, 1)
+                        if len(parts) > 1:
+                            curl_part = parts[1].split("\n\nError:")[0].split("\n\nNo matching")[0].strip()
+                            with st.expander("📋 Curl command (copy to test)"):
+                                st.code(curl_part, language="bash")
 
     if data_to_show is None and st.session_state.get("qa_last_result"):
         data_to_show = st.session_state.qa_last_result
@@ -178,12 +135,12 @@ def render():
     if data_to_show:
         data = data_to_show
         # ---------- Question (echo) ----------
-        st.subheader("❓ Câu hỏi")
+        st.subheader("❓ Question")
         st.write(data.get("question", ""))
 
         # ---------- Answer ----------
-        st.subheader("💡 Câu trả lời")
-        answer = data.get("answer") or "Không có câu trả lời."
+        st.subheader("💡 Answer")
+        answer = data.get("answer") or "No answer."
         model_used = data.get("model_used")
 
         if model_used:
@@ -191,11 +148,33 @@ def render():
 
         st.markdown(answer)
 
-        # ---------- Like / Dislike (bấm lại cùng nút = xóa, hai nút hiện bình thường) ----------
+        # ---------- Debug: Curl commands + step progress ----------
+        debug_info = data.get("debug_info")
+        if debug_info:
+            with st.expander("🔧 Curl commands to test + step progress", expanded=True):
+                steps = debug_info.get("steps_completed", [])
+                st.markdown("**✅ Completed up to:**")
+                for s in steps:
+                    st.markdown(f"- {s}")
+                st.markdown("---")
+                st.markdown("**1. Embed question (Ollama)**")
+                curl_embed = debug_info.get("curl_embed")
+                if curl_embed:
+                    st.code(curl_embed, language="bash")
+                st.markdown("**2. Search (Qdrant)**")
+                curl_search = debug_info.get("curl_search")
+                if curl_search:
+                    st.code(curl_search, language="bash")
+                st.markdown("**3. Complete (LLM)**")
+                curl_complete = debug_info.get("curl_complete")
+                if curl_complete:
+                    st.code(curl_complete, language="bash")
+
+        # ---------- Like / Dislike (click same button again to clear) ----------
         feedback = st.session_state.get("qa_feedback") or None
         bl, br = st.columns(2)
         with bl:
-            label_like = "👍 Đã thích (bấm để bỏ)" if feedback == "like" else "👍 Thích"
+            label_like = "👍 Liked (click to unlike)" if feedback == "like" else "👍 Like"
             if st.button(label_like, key="qa_like"):
                 if feedback == "like":
                     st.session_state.qa_feedback = None
@@ -203,7 +182,7 @@ def render():
                     st.session_state.qa_feedback = "like"
                 st.rerun()
         with br:
-            label_dislike = "👎 Đã không thích (bấm để bỏ)" if feedback == "dislike" else "👎 Không thích"
+            label_dislike = "👎 Disliked (click to remove)" if feedback == "dislike" else "👎 Dislike"
             if st.button(label_dislike, key="qa_dislike"):
                 if feedback == "dislike":
                     st.session_state.qa_feedback = None
@@ -212,7 +191,7 @@ def render():
                 st.rerun()
 
         st.download_button(
-            "⬇️ Tải câu trả lời (TXT)",
+            "⬇️ Download answer (TXT)",
             data=answer,
             file_name="qa_answer.txt",
             mime="text/plain",
@@ -221,21 +200,21 @@ def render():
 
         # ---------- Contexts summary ----------
         contexts = data.get("contexts", [])
-        st.subheader("📚 Context đã dùng để trả lời")
+        st.subheader("📚 Context used for answer")
         st.caption(
-            "Các đoạn tài liệu được tìm bằng semantic search và gửi cho LLM. "
-            "Score = độ tương đồng với câu hỏi (0–1)."
+            "Document passages found by semantic search and sent to the LLM. "
+            "Score = similarity to the question (0–1)."
         )
 
         if not contexts:
-            st.info("Không có context nào được sử dụng")
+            st.info("No context was used")
         else:
             scores = [c["score"] for c in contexts]
-            st.metric("Số context", len(contexts))
-            st.caption(f"Score trung bình: {sum(scores) / len(scores):.4f} | Min: {min(scores):.4f} | Max: {max(scores):.4f}")
+            st.metric("Context count", len(contexts))
+            st.caption(f"Avg score: {sum(scores) / len(scores):.4f} | Min: {min(scores):.4f} | Max: {max(scores):.4f}")
 
             # ---------- Table ----------
-            st.markdown("**Bảng context**")
+            st.markdown("**Context table**")
             rows = []
             for idx, ctx in enumerate(contexts, start=1):
                 text = ctx.get("text") or ""
@@ -252,7 +231,7 @@ def render():
             st.dataframe(df, use_container_width=True)
 
             # ---------- Detail per context ----------
-            st.markdown("**Chi tiết từng context**")
+            st.markdown("**Context details**")
             for idx, ctx in enumerate(contexts, start=1):
                 title = (
                     f"[{idx}] score = {ctx['score']:.4f} | "
@@ -271,10 +250,10 @@ def render():
                         if ctx.get("id"):
                             st.write(f"- point id: `{ctx.get('id')}`")
                     with c2:
-                        text = ctx.get("text") or "(trống)"
-                        st.write("**Nội dung**")
+                        text = ctx.get("text") or "(empty)"
+                        st.write("**Content**")
                         st.text_area(
-                            "Nội dung",
+                            "Content",
                             value=text,
                             height=180,
                             key=f"qa_ctx_text_{idx}_{ctx.get('id', idx)}",
@@ -282,7 +261,7 @@ def render():
                             label_visibility="collapsed",
                         )
                         st.download_button(
-                            "⬇️ Tải nội dung context",
+                            "⬇️ Download context content",
                             data=text,
                             file_name=f"context_{ctx.get('file_hash', '')}_{ctx.get('chunk_id', idx)}.txt",
                             mime="text/plain",
@@ -294,4 +273,4 @@ def render():
             st.json(data)
 
     else:
-        st.info("Nhập câu hỏi và bấm **Hỏi AI** để bắt đầu.")
+        st.info("Enter a question and click **Ask AI** to start.")

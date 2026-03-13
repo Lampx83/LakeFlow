@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Body, HTTPException
+
+from lakeflow.i18n import i18n_detail
 import subprocess
 import sys
 import os
@@ -7,7 +9,17 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from lakeflow.services.ollama_embed_service import EMBED_MODEL
+
 router = APIRouter()
+
+# Default embed models (Ollama); override via EMBED_MODEL_OPTIONS env (comma-separated)
+DEFAULT_EMBED_MODELS = [
+    "qwen3-embedding:8b",
+    "nomic-embed-text",
+    "mxbai-embed-large",
+    "all-minilm",
+]
 
 SCRIPTS_DIR = (
     Path(__file__).resolve()
@@ -25,15 +37,16 @@ ALLOWED = {
 
 
 class RunStepBody(BaseModel):
-    """Chỉ chạy trên các thư mục được chọn; để trống = chạy toàn bộ. force_rerun = chạy lại kể cả đã làm rồi. collection_name = chỉ step4 (Qdrant). qdrant_url = chỉ step4 (insert vào Qdrant Service này)."""
+    """Run only on selected folders; leave empty = run all. force_rerun = run again even if already done. collection_name = step4 only (Qdrant). qdrant_url = step4 only. embed_model = step3 only (Ollama embed model, e.g. qwen3-embedding:8b, nomic-embed-text)."""
     only_folders: Optional[list[str]] = None
     force_rerun: Optional[bool] = False
     collection_name: Optional[str] = None
     qdrant_url: Optional[str] = None
+    embed_model: Optional[str] = None
 
 
 def _list_folders_for_step(step: str) -> list[str]:
-    """Trả về danh sách tên thư mục (domain / file_hash) cho bước pipeline."""
+    """Return list of folder paths (relative, can be nested e.g. 'Library/Quy định hướng dẫn') for the pipeline step."""
     from lakeflow.config import paths
 
     out = []
@@ -49,57 +62,59 @@ def _list_folders_for_step(step: str) -> list[str]:
         elif step == "step2":
             staging = paths.staging_path()
             if staging.exists():
-                # 200_staging: <domain>/<file_hash>/ hoặc (cũ) <file_hash>/
-                domain_names = []
-                file_hashes_flat = []
-                for entry in staging.iterdir():
-                    if not entry.is_dir() or entry.name.startswith("."):
-                        continue
-                    if (entry / "validation.json").exists():
-                        file_hashes_flat.append(entry.name)
-                    else:
-                        domain_names.append(entry.name)
-                # Ưu tiên trả về thư mục cha (domain) để chọn; không có thì trả về file_hash (cấu trúc cũ)
-                out = sorted(domain_names) if domain_names else sorted(file_hashes_flat)
+                # Collect all parent paths that contain validation.json (nested structure)
+                parent_dirs = set()
+                for path in staging.rglob("validation.json"):
+                    if path.is_file():
+                        d = path.parent
+                        if d != staging:
+                            parent_dirs.add(str(d.parent.relative_to(staging)).replace("\\", "/"))
+                out = sorted(parent_dirs) if parent_dirs else []
         elif step == "step3":
             processed = paths.processed_path()
             if processed.exists():
-                # 300_processed: <domain>/<file_hash>/ hoặc (cũ) <file_hash>/
-                file_hashes = set()
-                for entry in processed.iterdir():
-                    if not entry.is_dir() or entry.name.startswith("."):
-                        continue
-                    if (entry / "chunks.json").exists():
-                        file_hashes.add(entry.name)
-                    else:
-                        for sub in entry.iterdir():
-                            if sub.is_dir() and (sub / "chunks.json").exists():
-                                file_hashes.add(sub.name)
-                out = sorted(file_hashes)
+                parent_dirs = set()
+                for path in processed.rglob("chunks.json"):
+                    if path.is_file():
+                        d = path.parent
+                        if d != processed:
+                            parent_dirs.add(str(d.parent.relative_to(processed)).replace("\\", "/"))
+                out = sorted(parent_dirs) if parent_dirs else []
         elif step == "step4":
             emb = paths.embeddings_path()
             if emb.exists():
-                # 400_embeddings: <domain>/<file_hash>/ hoặc (cũ) <file_hash>/
-                domain_names = []
-                file_hashes_flat = []
-                for entry in emb.iterdir():
-                    if not entry.is_dir() or entry.name.startswith("."):
-                        continue
-                    if (entry / "embedding.npy").exists():
-                        file_hashes_flat.append(entry.name)
-                    else:
-                        domain_names.append(entry.name)
-                out = sorted(domain_names) if domain_names else sorted(file_hashes_flat)
+                parent_dirs = set()
+                for path in emb.rglob("embedding.npy"):
+                    if path.is_file():
+                        d = path.parent
+                        if d != emb:
+                            parent_dirs.add(str(d.parent.relative_to(emb)).replace("\\", "/"))
+                out = sorted(parent_dirs) if parent_dirs else []
     except Exception:
         pass
     return out
 
 
+def _get_embed_models() -> list[str]:
+    """Return list of embed model names for step3 selection."""
+    raw = os.getenv("EMBED_MODEL_OPTIONS", "").strip()
+    if raw:
+        return [m.strip() for m in raw.split(",") if m.strip()]
+    return DEFAULT_EMBED_MODELS
+
+
+@router.get("/embed-models")
+def list_embed_models() -> dict:
+    """List of embed models for step3. Default from EMBED_MODEL_OPTIONS env or built-in list."""
+    models = _get_embed_models()
+    return {"models": models, "default": EMBED_MODEL}
+
+
 @router.get("/folders/{step}")
 def list_folders(step: str) -> dict:
-    """Danh sách thư mục có thể chọn để chạy bước pipeline (chọn subset thay vì chạy toàn bộ)."""
+    """List of folders that can be selected to run the pipeline step (select subset instead of running all)."""
     if step not in ALLOWED:
-        raise HTTPException(status_code=400, detail="Invalid step")
+        raise HTTPException(status_code=400, detail=i18n_detail("pipeline.invalid_step"))
     folders = _list_folders_for_step(step)
     return {"step": step, "folders": folders}
 
@@ -107,11 +122,14 @@ def list_folders(step: str) -> dict:
 @router.post("/run/{step}")
 def run_step(step: str, body: Optional[RunStepBody] = Body(default=None)):
     if step not in ALLOWED:
-        raise HTTPException(status_code=400, detail="Invalid step")
+        raise HTTPException(status_code=400, detail=i18n_detail("pipeline.invalid_step"))
 
     script_path = SCRIPTS_DIR / ALLOWED[step]
     if not script_path.exists():
-        raise HTTPException(status_code=404, detail=f"Script not found: {script_path}")
+        raise HTTPException(
+            status_code=404,
+            detail=i18n_detail("pipeline.script_not_found", script_path=str(script_path)),
+        )
 
     env = os.environ.copy()
     env["PYTHONPATH"] = env.get("PYTHONPATH", "/app/src")
@@ -121,8 +139,10 @@ def run_step(step: str, body: Optional[RunStepBody] = Body(default=None)):
         env["PIPELINE_FORCE_RERUN"] = "1"
     if body and body.collection_name and body.collection_name.strip():
         env["PIPELINE_QDRANT_COLLECTION"] = body.collection_name.strip()
+    if body and body.embed_model and body.embed_model.strip() and step == "step3":
+        env["PIPELINE_EMBED_MODEL"] = body.embed_model.strip()
     if body and body.qdrant_url and body.qdrant_url.strip() and step == "step4":
-        # Truyền Qdrant Service cho script step3_processed_qdrant (host:port hoặc URL)
+        # Pass Qdrant service to step3_processed_qdrant script (host:port or URL)
         u = body.qdrant_url.strip()
         if u.startswith("http://"):
             u = u[7:]
@@ -136,10 +156,10 @@ def run_step(step: str, body: Optional[RunStepBody] = Body(default=None)):
             env["QDRANT_HOST"] = u
             env["QDRANT_PORT"] = "6333"
 
-    # Truyền đúng DATA_BASE_PATH mà backend đang dùng (tránh subprocess nhận /data)
+    # Pass correct DATA_BASE_PATH that backend uses (avoid subprocess receiving /data)
     from lakeflow.runtime.config import runtime_config
     try:
-        env["LAKEFLOW_DATA_BASE_PATH"] = str(runtime_config.get_data_base_path())
+        env["LAKE_ROOT"] = str(runtime_config.get_data_base_path())
         env["LAKEFLOW_MODE"] = os.getenv("LAKEFLOW_MODE", "")
     except RuntimeError:
         pass
@@ -151,10 +171,10 @@ def run_step(step: str, body: Optional[RunStepBody] = Body(default=None)):
             text=True,
             env=env,
             cwd=Path(__file__).resolve().parents[3],
-            timeout=60 * 60,  # 1h tuỳ nhu cầu
+            timeout=60 * 60,  # 1h as needed
         )
     except subprocess.TimeoutExpired:
-        raise HTTPException(status_code=408, detail="Pipeline step timed out")
+        raise HTTPException(status_code=408, detail=i18n_detail("pipeline.timeout"))
 
     return {
         "step": step,

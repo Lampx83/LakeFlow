@@ -10,30 +10,30 @@ pandas>=2.0.0
 numpy==1.26.4
 
 # --- Excel Processing ---
-openpyxl>=3.1.0    # Cho file .xlsx
-xlrd>=2.0.1        # Cho file .xls (Khắc phục lỗi bạn vừa gặp)
+openpyxl>=3.1.0    # For .xlsx files
+xlrd>=2.0.1        # For .xls files
 
 # --- Word Processing ---
 python-docx>=1.1.0
 
 # --- PDF & OCR Processing ---
 PyPDF2>=3.0.0
-easyocr>=1.7.1      # Thư viện OCR chính
-pdf2image>=1.16.3   # Chuyển PDF sang ảnh để OCR
-pillow>=10.0.0      # Xử lý ảnh bổ trợ
+easyocr>=1.7.1      # Main OCR library
+pdf2image>=1.16.3   # Convert PDF to images for OCR
+pillow>=10.0.0      # Image processing support
 pdfplumber>=0.11.0
 pypdfium2<5.0
 
 # =========================
 # AI / NLP (embedding)
 # =========================
-# Docker: cài torch CPU trước (Dockerfile). Mac M1 (venv): pip install torch rồi pip install -r requirements.txt → dùng GPU Metal (MPS).
+# Docker: install torch CPU first (Dockerfile). Mac M1 (venv): pip install torch then pip install -r requirements.txt → use GPU Metal (MPS).
 sentence-transformers>=2.2.2
 transformers>=4.36.0
-torch>=2.0.0        # Backend cho EasyOCR và Embedding
+torch>=2.0.0        # Backend for EasyOCR and Embedding
 
 # =========================
-# Backend API (để sẵn)
+# Backend API
 # =========================
 fastapi>=0.110.0
 uvicorn>=0.27.0

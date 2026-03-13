@@ -35,8 +35,8 @@ st.set_page_config(
 init_session()
 init_navigation()
 
-# Auto redirect nếu đã login
-# Auto redirect chỉ khi app vừa load lần đầu
+# Auto redirect if already logged in
+# Auto redirect only when app first loads
 if is_logged_in() and "page" not in st.session_state:
     set_page("semantic_search")
 
@@ -49,9 +49,9 @@ with st.sidebar:
 
     # ---------- AUTH STATUS ----------
     if is_logged_in():
-        st.success("🔓 Đã đăng nhập")
+        st.success("🔓 Logged in")
     else:
-        st.warning("🔒 Chưa đăng nhập")
+        st.warning("🔒 Not logged in")
 
     # ---------- LOGIN (ALWAYS AVAILABLE) ----------
     st.button(
@@ -70,7 +70,7 @@ with st.sidebar:
         st.button("🗄️ SQLite Viewer", on_click=set_page, args=("sqlite_viewer",), use_container_width=True)
         st.button("🧠 Qdrant Inspector", on_click=set_page, args=("qdrant_inspector",), use_container_width=True)
         st.button("🔎 Semantic Search", on_click=set_page, args=("semantic_search",), use_container_width=True)
-        st.button("🤖 Hỏi đáp với AI", on_click=set_page, args=("qa",), use_container_width=True)
+        st.button("🤖 Q&A with AI", on_click=set_page, args=("qa",), use_container_width=True)
         st.button("⚙️ System Settings", on_click=set_page, args=("system_settings",), use_container_width=True)
 
 
@@ -102,7 +102,7 @@ elif page == "admin":
 else:
     st.error(f"Unknown page: {page}")
 
-# Dev: khi server restart (dev_with_reload), tự refresh trang khi thấy server chạy lại
+# Dev: when server restarts (dev_with_reload), auto refresh page when server is back
 if LAKEFLOW_MODE == "DEV":
     _auto_reload_js = """
     <script>

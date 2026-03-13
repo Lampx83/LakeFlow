@@ -1,9 +1,9 @@
 # ======================
-# LakeFlow – chỉ đẩy code & config mẫu, không đẩy env/venv/data/tạm
+# LakeFlow – push only code & sample config, not env/venv/data/temp
 # ======================
 
 # ------------------------------
-# Bí mật & biến môi trường
+# Secrets & environment
 # ------------------------------
 .env
 .env.*
@@ -31,6 +31,7 @@ eggs/
 .eggs/
 lib/
 lib64/
+!website/src/lib/
 parts/
 sdist/
 var/
@@ -51,7 +52,7 @@ dmypy.json
 .ruff_cache/
 .pytype/
 
-# Virtual env (mọi thư mục)
+# Virtual env (any directory)
 .venv/
 venv/
 ENV/
@@ -60,10 +61,17 @@ backend/.venv/
 frontend/.venv/
 
 # ------------------------------
-# Dữ liệu & storage local
+# Data & local storage
 # ------------------------------
 qdrant_storage/
 /data/
+
+# datalake: track folder structure (.gitkeep only), ignore all files
+datalake/*
+!datalake/.gitkeep
+!datalake/*/
+datalake/*/*
+!datalake/*/.gitkeep
 *.sqlite
 *.sqlite3
 *.db
@@ -84,7 +92,7 @@ qdrant_storage/
 .settings/
 
 # ------------------------------
-# Hệ điều hành
+# OS
 # ------------------------------
 .DS_Store
 .DS_Store?
@@ -94,7 +102,7 @@ ehthumbs.db
 Desktop.ini
 
 # ------------------------------
-# Log, tạm, backup
+# Log, temp, backup
 # ------------------------------
 *.log
 logs/
@@ -119,13 +127,13 @@ temp/
 .streamlit/secrets.toml
 
 # ------------------------------
-# Docker (override thường chứa cấu hình local)
+# Docker (override often contains local config)
 # ------------------------------
 docker-compose.override.yml
 docker-compose.*.local.yml
 
 # ------------------------------
-# Node (nếu sau này dùng)
+# Node (if used later)
 # ------------------------------
 node_modules/
 npm-debug.log*
@@ -135,7 +143,7 @@ yarn-error.log*
 .yarn-integrity
 
 # ------------------------------
-# Khác – tránh đẩy nhầm
+# Other – avoid pushing by mistake
 # ------------------------------
 *.zip
 *.tar

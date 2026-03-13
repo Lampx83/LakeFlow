@@ -38,7 +38,7 @@ jobs:
       - name: Build and push Backend
         uses: docker/build-push-action@v6
         with:
-          context: ./lake-flow
+          context: ./backend
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/datalake-backend:${{ steps.meta.outputs.version }}
@@ -49,8 +49,7 @@ jobs:
       - name: Build and push Frontend
         uses: docker/build-push-action@v6
         with:
-          context: ./lake-flow-ui
-          file: ./lake-flow-ui/Dockerfile
+          context: ./frontend/streamlit
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/datalake-frontend:${{ steps.meta.outputs.version }}

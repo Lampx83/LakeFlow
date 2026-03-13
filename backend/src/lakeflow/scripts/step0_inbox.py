@@ -20,15 +20,11 @@ from lakeflow.config import paths
 from dotenv import load_dotenv
 load_dotenv()
 
-# ======================================================
-# BOOTSTRAP RUNTIME CONFIG (BẮT BUỘC)
-# ======================================================
-
-data_base = os.getenv("LAKEFLOW_DATA_BASE_PATH")
+data_base = os.getenv("LAKE_ROOT")
 if not data_base:
     raise RuntimeError(
-        "LAKEFLOW_DATA_BASE_PATH is not set. "
-        "Example: export LAKEFLOW_DATA_BASE_PATH=/path/to/data_lake"
+        "LAKE_ROOT is not set. "
+        "Example: export LAKE_ROOT=/path/to/data_lake"
     )
 
 data_base_path = Path(data_base).expanduser().resolve()
@@ -37,17 +33,9 @@ runtime_config.set_data_base_path(data_base_path)
 print(f"[BOOT] DATA_BASE_PATH = {data_base_path}")
 
 
-# ======================================================
-# INIT CATALOG DB
-# ======================================================
-
 conn = get_connection(paths.catalog_db_path())
 init_db(conn)
 
-
-# ======================================================
-# RUN INGESTION
-# ======================================================
 
 print("=== RUN INGESTION (000_inbox → 100_raw) ===")
 
@@ -55,9 +43,9 @@ only_folders_env = os.getenv("PIPELINE_ONLY_FOLDERS")
 only_path_prefixes = [s.strip() for s in (only_folders_env or "").split(",") if s.strip()] or None
 force_rerun = os.getenv("PIPELINE_FORCE_RERUN") == "1"
 if only_path_prefixes:
-    print(f"[INBOX] Chỉ chạy các thư mục: {only_path_prefixes}")
+    print(f"[INBOX] Running only folders: {only_path_prefixes}")
 if force_rerun:
-    print("[INBOX] Force re-run: chạy lại kể cả đã ingest")
+    print("[INBOX] Force re-run: run again even if already ingested")
 
 before = conn.execute(
     "SELECT COUNT(*) FROM raw_objects"

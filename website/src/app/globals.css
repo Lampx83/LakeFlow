@@ -25,3 +25,38 @@ html {
 .gradient-text {
   @apply bg-gradient-to-r from-brand-400 to-brand-300 bg-clip-text text-transparent;
 }
+
+/* Docs prose styles */
+.docs-prose a {
+  @apply text-brand-400 hover:underline;
+}
+.docs-prose code {
+  @apply rounded bg-white/10 px-1.5 py-0.5 font-mono text-sm;
+}
+.docs-prose h2 {
+  @apply mt-10 text-xl font-semibold text-white;
+}
+.docs-prose h3 {
+  @apply mt-6 text-lg font-medium text-white;
+}
+.docs-prose li {
+  @apply mt-1;
+}
+.docs-prose ol {
+  @apply list-decimal pl-5;
+}
+.docs-prose pre {
+  @apply mt-3;
+}
+.docs-prose ul {
+  @apply list-disc pl-5;
+}
+.docs-prose table {
+  @apply border-collapse;
+}
+.docs-prose th {
+  @apply border border-white/20 px-3 py-2 text-left;
+}
+.docs-prose td {
+  @apply border border-white/20 px-3 py-2;
+}

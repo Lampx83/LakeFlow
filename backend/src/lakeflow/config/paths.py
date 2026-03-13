@@ -2,20 +2,12 @@ from pathlib import Path
 from lakeflow.runtime.config import runtime_config
 
 
-# =====================================================
-# Helpers
-# =====================================================
-
 def _base() -> Path:
     """
-    Lấy DATA_BASE_PATH tại runtime.
+    Get DATA_BASE_PATH at runtime.
     """
     return runtime_config.get_data_base_path()
 
-
-# =====================================================
-# DATA LAKE ZONES (LAZY)
-# =====================================================
 
 def inbox_path() -> Path:
     return _base() / "000_inbox"
@@ -40,10 +32,6 @@ def embeddings_path() -> Path:
 def catalog_path() -> Path:
     return _base() / "500_catalog"
 
-
-# =====================================================
-# CATALOG DB
-# =====================================================
 
 def catalog_db_path() -> Path:
     return catalog_path() / "catalog.sqlite"

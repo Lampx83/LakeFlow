@@ -1,7 +1,7 @@
 """
 Step 1 – Multi-format Staging
 100_raw → 200_staging
-Hỗ trợ: PDF, DOCX, XLSX, XLS
+Supports: PDF, DOCX, XLSX, XLS
 """
 
 from pathlib import Path
@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from lakeflow.runtime.config import runtime_config
-# Import các hàm staging từ pipeline mới
+# Import staging functions from new pipeline
 from lakeflow.pipelines.staging.pipeline import (
     run_pdf_staging, 
     run_word_staging, 
@@ -22,13 +22,9 @@ from lakeflow.pipelines.staging.pdf_analyzer import StagingError
 from lakeflow.config import paths
 
 
-# ======================================================
-# BOOTSTRAP RUNTIME CONFIG
-# ======================================================
-
-data_base = os.getenv("LAKEFLOW_DATA_BASE_PATH")
+data_base = os.getenv("LAKE_ROOT")
 if not data_base:
-    raise RuntimeError("LAKEFLOW_DATA_BASE_PATH is not set.")
+    raise RuntimeError("LAKE_ROOT is not set.")
 
 base_path = Path(data_base).expanduser().resolve()
 runtime_config.set_data_base_path(base_path)
@@ -36,34 +32,27 @@ runtime_config.set_data_base_path(base_path)
 print(f"[BOOT] DATA_BASE_PATH = {base_path}")
 
 
-# ======================================================
-# HELPERS
-# ======================================================
-
 def extract_file_hash(file_path: Path) -> str:
-    """Hash chính là tên file (stem) vì Step 0 đã đổi tên file thành SHA256."""
+    """Hash is the file name (stem) because Step 0 renamed files to SHA256."""
     return file_path.stem
 
 
 def _parent_dir_from_raw(file_path: Path, raw_root: Path) -> str:
-    """Lấy tên domain (thư mục cha) từ 100_raw."""
+    """Full path of file's parent relative to 100_raw (preserves nested folders, e.g. 'Library/Quy định hướng dẫn')."""
     try:
         rel = file_path.relative_to(raw_root)
-        return rel.parts[0] if len(rel.parts) > 1 else ""
+        return str(rel.parent).replace("\\", "/")
     except ValueError:
         return ""
 
 
 def already_staged(file_hash: str, parent_dir: str = "") -> bool:
-    """Kiểm tra file đã có validation.json trong 200_staging chưa."""
+    """Check whether file already has validation.json in 200_staging (parent_dir can contain '/')."""
     root = paths.staging_path()
-    check_path = root / parent_dir / file_hash / "validation.json"
+    # parent_dir can be "Library/Quy định hướng dẫn"
+    check_path = root / parent_dir / file_hash / "validation.json" if parent_dir else root / file_hash / "validation.json"
     return check_path.exists()
 
-
-# ======================================================
-# MAIN
-# ======================================================
 
 def main():
     print("=== RUN MULTI-FORMAT STAGING (200_staging) ===")
@@ -72,14 +61,14 @@ def main():
     if not raw_root.exists():
         raise RuntimeError(f"RAW_PATH does not exist: {raw_root}")
 
-    # Cấu hình lọc thư mục và ghi đè
+    # Configure folder filter and overwrite
     only_folders_env = os.getenv("PIPELINE_ONLY_FOLDERS")
     only_path_prefixes = [s.strip().rstrip("/") for s in (only_folders_env or "").split(",") if s.strip()] or None
     force_rerun = os.getenv("PIPELINE_FORCE_RERUN") == "1"
 
     processed = skipped = failed = 0
 
-    # Bước quan trọng: Mở rộng định dạng file hỗ trợ
+    # Important: extend supported file formats
     allowed_extensions = {".pdf", ".docx", ".xlsx", ".xls"}
     
     all_files = [
@@ -90,7 +79,7 @@ def main():
     print(f"[DEBUG] Found {len(all_files)} files to analyze")
 
     for file_path in all_files:
-        # Lọc theo folder nếu có cấu hình PIPELINE_ONLY_FOLDERS
+        # Filter by folder if PIPELINE_ONLY_FOLDERS is set
         if only_path_prefixes:
             try:
                 rel_str = str(file_path.relative_to(raw_root)).replace("\\", "/")
@@ -103,7 +92,7 @@ def main():
         parent_dir = _parent_dir_from_raw(file_path, raw_root)
         ext = file_path.suffix.lower()
 
-        # Kiểm tra trùng lặp
+        # Check for duplicates
         if not force_rerun and already_staged(file_hash, parent_dir):
             print(f"[STAGING][SKIP] Already staged: {file_hash} ({ext})")
             skipped += 1
@@ -112,7 +101,7 @@ def main():
         print(f"[STAGING][{ext.upper()}] Processing: {file_path.name}")
 
         try:
-            # Điều hướng xử lý dựa trên định dạng file
+            # Route processing by file format
             if ext == ".pdf":
                 run_pdf_staging(
                     file_hash=file_hash,
@@ -174,14 +163,14 @@ if __name__ == "__main__":
 
 
 # # ======================================================
-# # BOOTSTRAP RUNTIME CONFIG (BẮT BUỘC)
+# # BOOTSTRAP RUNTIME CONFIG (REQUIRED)
 # # ======================================================
 
-# data_base = os.getenv("LAKEFLOW_DATA_BASE_PATH")
+# data_base = os.getenv("LAKE_ROOT")
 # if not data_base:
 #     raise RuntimeError(
-#         "LAKEFLOW_DATA_BASE_PATH is not set. "
-#         "Example: export LAKEFLOW_DATA_BASE_PATH=/path/to/data_lake"
+#         "LAKE_ROOT is not set. "
+#         "Example: export LAKE_ROOT=/path/to/data_lake"
 #     )
 
 # base_path = Path(data_base).expanduser().resolve()
@@ -199,7 +188,7 @@ if __name__ == "__main__":
 
 
 # def _parent_dir_from_raw(pdf_path: Path, raw_root: Path) -> str:
-#     """Thư mục cha trong 100_raw (domain)."""
+#     """Parent directory in 100_raw (domain)."""
 #     try:
 #         rel = pdf_path.relative_to(raw_root)
 #         return rel.parts[0] if rel.parts else ""
@@ -208,7 +197,7 @@ if __name__ == "__main__":
 
 
 # def already_staged(file_hash: str, parent_dir: str = "") -> bool:
-#     """Kiểm tra đã staging chưa (200_staging/<parent_dir>/<file_hash>/validation.json)."""
+#     """Check if already staged (200_staging/<parent_dir>/<file_hash>/validation.json)."""
 #     root = paths.staging_path()
 #     if parent_dir:
 #         return (root / parent_dir / file_hash / "validation.json").exists()
@@ -232,13 +221,13 @@ if __name__ == "__main__":
 #     only_path_prefixes = [s.strip().rstrip("/") for s in (only_folders_env or "").split(",") if s.strip()] or None
 #     force_rerun = os.getenv("PIPELINE_FORCE_RERUN") == "1"
 #     if only_path_prefixes:
-#         print(f"[STAGING] Chỉ chạy các thư mục: {only_path_prefixes}")
+#         print(f"[STAGING] Running only folders: {only_path_prefixes}")
 #     if force_rerun:
-#         print("[STAGING] Force re-run: chạy lại kể cả đã staging")
+#         print("[STAGING] Force re-run: run again even if already staged")
 
 #     processed = skipped = failed = 0
 
-#     # Tìm cả file PDF và DOCX
+#     # Find both PDF and DOCX files
 #     allowed_extensions = {".pdf", ".docx"}
 #     all_files = [
 #         p for p in raw_root.rglob("*") 
@@ -279,11 +268,11 @@ if __name__ == "__main__":
 #         except StagingError as exc:
 #             failed += 1
 #             print(f"[STAGING][ERROR] {pdf_path.name}")
-#             print(f"                Lý do: {exc}")
+#             print(f"                Reason: {exc}")
 #         except Exception as exc:
 #             failed += 1
 #             print(f"[STAGING][ERROR] {pdf_path.name}")
-#             print(f"                Lý do: {type(exc).__name__}: {exc}")
+#             print(f"                Reason: {type(exc).__name__}: {exc}")
 
 #     print("=================================")
 #     print(f"PDF processed : {processed}")

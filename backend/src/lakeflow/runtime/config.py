@@ -5,7 +5,7 @@ from threading import RLock
 class RuntimeConfig:
     """
     Runtime-safe configuration.
-    Có thể thay đổi khi app đang chạy.
+    Can be changed while app is running.
     """
 
     def __init__(self):
@@ -28,5 +28,5 @@ class RuntimeConfig:
             return self._data_base_path
 
 
-# Singleton (rất quan trọng)
+# Singleton (critical)
 runtime_config = RuntimeConfig()

@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
-# Build: DOCKER_BUILDKIT=1. TORCH_CPU=1 (mặc định): PyTorch CPU-only → server/CI nhanh, không kéo CUDA.
-# Mac M1 dev dùng GPU (Metal/MPS): chạy backend bằng venv trên macOS (không Docker), pip install torch rồi requirements.txt.
+# Build: DOCKER_BUILDKIT=1. TORCH_CPU=1 (default): PyTorch CPU-only → fast server/CI, no CUDA pull.
+# Mac M1 dev with GPU (Metal/MPS): run backend via venv on macOS (no Docker), pip install torch then requirements.txt.
 FROM python:3.10-slim
 
-# ---------- Build arg: 1 = PyTorch CPU (server/CI), 0 = PyTorch từ PyPI (Linux có GPU hoặc Docker trên Mac) ----------
+# ---------- Build arg: 1 = PyTorch CPU (server/CI), 0 = PyTorch from PyPI (Linux with GPU or Docker on Mac) ----------
 ARG TORCH_CPU=1
 
 # ---------- System deps ----------
@@ -33,7 +33,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # ---------- Project ----------
 COPY . .
 
-# ---------- Entrypoint: tạo thư mục /data (500_catalog, ...) và chmod để tránh "unable to open database file" ----------
+# ---------- Entrypoint: create /data dirs (500_catalog, ...) and chmod to avoid "unable to open database file" ----------
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

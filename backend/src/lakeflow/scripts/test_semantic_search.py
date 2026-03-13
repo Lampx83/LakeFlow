@@ -10,12 +10,12 @@ import json
 import sys
 
 # =========================
-# CẤU HÌNH
+# CONFIG
 # =========================
 
 API_URL = "http://127.0.0.1:8011/search/semantic"
 
-# DÁN ACCESS TOKEN VÀO ĐÂY
+# PASTE ACCESS TOKEN HERE
 TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTc2OTE5MjM3OX0.r_P4ubr45-x5M7u4yrRIarwd71axXKEJPXlFV0Fkiao"
 
 # =========================
@@ -23,7 +23,7 @@ TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTc2OT
 # =========================
 
 payload = {
-    "query": "Kinh tế quốc dân",
+    "query": "university admission regulations",
     "top_k": 5
 }
 
@@ -37,7 +37,7 @@ def main():
     print("=== TEST SEMANTIC SEARCH API ===")
 
     if not TOKEN or TOKEN.startswith("PASTE_"):
-        print("❌ ACCESS TOKEN chưa được cấu hình")
+        print("❌ ACCESS TOKEN not configured")
         sys.exit(1)
 
     print("Request payload:")

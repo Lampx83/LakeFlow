@@ -1,11 +1,11 @@
 """
-Chunking module cho LakeFlow AI ingestion pipeline.
+Chunking module for LakeFlow AI ingestion pipeline.
 
-Mục tiêu:
+Goals:
 - Semantic-friendly chunking
-- Tránh tạo chunk quá nhỏ
-- Hỗ trợ overlap để tăng recall trong RAG
-- Chuẩn hóa text trước khi chia chunk
+- Avoid creating too-small chunks
+- Support overlap to improve RAG recall
+- Normalize text before chunking
 """
 
 import re
@@ -18,25 +18,25 @@ from typing import List
 
 def _normalize_text(text: str) -> str:
     """
-    Chuẩn hóa văn bản trước khi chunk:
-    - Gộp nhiều whitespace
-    - Chuẩn hóa newline
-    - Fix chữ dính số (VD: tuyển sinh3 → tuyển sinh 3)
+    Normalize text before chunking:
+    - Merge multiple whitespace
+    - Normalize newlines
+    - Fix text stuck to numbers (e.g. word3 → word 3)
     """
 
     if not text:
         return ""
 
-    # Chuẩn hóa newline
+    # Normalize newlines
     text = re.sub(r"\r\n", "\n", text)
 
-    # Gộp nhiều khoảng trắng thành 1
+    # Merge multiple spaces into one
     text = re.sub(r"[ \t]+", " ", text)
 
-    # Loại bỏ nhiều newline liên tiếp
+    # Remove consecutive newlines
     text = re.sub(r"\n{3,}", "\n\n", text)
 
-    # Fix chữ dính số
+    # Fix text stuck to numbers
     text = re.sub(r"([A-Za-zÀ-ỹ])(\d)", r"\1 \2", text)
 
     return text.strip()
@@ -53,23 +53,23 @@ def chunk_text(
     min_chunk_tokens: int = 50,
 ) -> List[str]:
     """
-    Chia văn bản thành các chunk phù hợp cho embedding & RAG.
+    Split text into chunks suitable for embedding & RAG.
 
     Parameters
     ----------
     text : str
-        Văn bản đầu vào
+        Input text
     chunk_size : int
-        Số token (ước lượng theo word) tối đa mỗi chunk
+        Max tokens (word-estimated) per chunk
     chunk_overlap : int
-        Số token overlap giữa các chunk
+        Token overlap between chunks
     min_chunk_tokens : int
-        Số token tối thiểu để chấp nhận một chunk
+        Min tokens to accept a chunk
 
     Returns
     -------
     List[str]
-        Danh sách các chunk văn bản
+        List of text chunks
     """
 
     # ------------------------------------------------------
@@ -84,7 +84,7 @@ def chunk_text(
     words = text.split()
     total_words = len(words)
 
-    # Nếu ngắn hơn chunk_size → trả về 1 chunk duy nhất
+    # If shorter than chunk_size → return single chunk
     if total_words <= chunk_size:
         if total_words >= min_chunk_tokens:
             return [text]
@@ -113,7 +113,7 @@ def chunk_text(
 
     return chunks
 
-# chiều 24/2/2026=============================
+# afternoon 24/2/2026 =============================
 # import re
 # from typing import List
 
@@ -122,7 +122,7 @@ def chunk_text(
 # # CONFIG
 # # ==============================
 
-# MIN_CHUNK_LENGTH = 80  # an toàn hơn 50
+# MIN_CHUNK_LENGTH = 80  # safer than 50
 
 
 # # ==============================
@@ -138,7 +138,7 @@ def chunk_text(
 #         |
 #         ^\s*(?:[A-Z][A-Z\s]{5,})$         # HEADING ALL CAPS
 #         |
-#         ^\s*(?:Điểm chuẩn|Học phí|Phương thức xét tuyển|Đối tượng|Nguyện vọng|Chỉ tiêu)
+#         ^\s*(?:Cutoff|Tuition|Admission method|Target|Aspiration|Quota)
 #     )
 #     """,
 #     re.IGNORECASE | re.MULTILINE | re.VERBOSE,
@@ -161,7 +161,7 @@ def chunk_text(
 #         end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
 #         section = text[start:end].strip()
 
-#         # Loại section quá ngắn (heading standalone)
+#         # Skip too-short section (standalone heading)
 #         if len(section) > 30:
 #             sections.append(section)
 
@@ -175,11 +175,11 @@ def chunk_text(
 # def is_trivial_sentence(text: str) -> bool:
 #     text = text.strip()
 
-#     # chỉ số như "5." hoặc "3)"
+#     # numeral like "5." or "3)"
 #     if re.fullmatch(r"\d+[\.\)]?", text):
 #         return True
 
-#     # quá ngắn
+#     # too short
 #     if len(text) < 20:
 #         return True
 
@@ -193,19 +193,19 @@ def chunk_text(
 # def is_bad_chunk(text: str) -> bool:
 #     text = text.strip()
 
-#     # Quá ngắn
+#     # Too short
 #     if len(text) < MIN_CHUNK_LENGTH:
 #         return True
 
-#     # Toàn chữ in hoa (heading)
+#     # All uppercase (heading)
 #     if text.isupper():
 #         return True
 
-#     # Không có dấu kết thúc câu
+#     # No sentence-ending punctuation
 #     if not any(p in text for p in [".", ":", ";", "?"]):
 #         return True
 
-#     # Quá ít từ thực
+#     # Too few real words
 #     if len(text.split()) < 10:
 #         return True
 
@@ -224,7 +224,7 @@ def chunk_text(
 
 #     sentences = re.split(r'(?<=[.!?])\s+', text)
 
-#     # Merge trivial sentence với câu sau
+#     # Merge trivial sentence with next sentence
 #     merged_sentences = []
 #     i = 0
 #     while i < len(sentences):
@@ -288,13 +288,13 @@ def chunk_text(
 #     return all_chunks
 
 
-# cũ trước 24/2/2026===============================
+# legacy before 24/2/2026 ===============================
 # from typing import List
 
 # def chunk_text(text: str, chunk_size: int = 1000, chunk_overlap: int = 200) -> List[str]:
 #     """
-#     Chia nhỏ văn bản thành các đoạn (chunks) có độ dài chunk_size 
-#     và có phần chồng lấn chunk_overlap để giữ ngữ cảnh.
+#     Split text into chunks of chunk_size length
+#     with chunk_overlap for context preservation.
 #     """
 #     if not text or chunk_size <= 0:
 #         return []
@@ -304,15 +304,15 @@ def chunk_text(
 #     text_len = len(text)
 
 #     while start < text_len:
-#         # Lấy một đoạn văn bản
+#         # Take a text segment
 #         end = start + chunk_size
 #         chunk = text[start:end]
 #         chunks.append(chunk)
         
-#         # Dịch chuyển điểm bắt đầu (trừ đi phần chồng lấn)
+#         # Advance start point (minus overlap)
 #         start += (chunk_size - chunk_overlap)
         
-#         # Tránh vòng lặp vô tận nếu overlap quá lớn
+#         # Avoid infinite loop if overlap too large
 #         if chunk_size <= chunk_overlap:
 #             break
 

@@ -1,8 +1,9 @@
-# Load .env sớm nhất (trước mọi import dùng config)
 import lakeflow.config.env  # noqa: F401, E402 — trigger load_dotenv
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+
+from lakeflow.i18n import http_exception_handler
 
 # Routers
 from lakeflow.api.auth import router as auth_router
@@ -13,6 +14,8 @@ from lakeflow.api.qdrant import router as qdrant_router
 from lakeflow.api.admin import router as admin_router
 from lakeflow.api.inbox import router as inbox_router
 from lakeflow.api.admission_agent import router as admission_agent_router
+from lakeflow.api.library_document_agent import router as library_document_agent_router
+from lakeflow.api.library_regulation_agent import router as library_regulation_agent_router
 
 import os
 from pathlib import Path
@@ -22,7 +25,7 @@ from lakeflow.runtime.config import runtime_config
 
 def create_app() -> FastAPI:
     """
-    Khởi tạo FastAPI app cho LakeFlow Backend
+    Initialize FastAPI app for LakeFlow Backend.
     """
     app = FastAPI(
         title="LakeFlow Backend API",
@@ -30,28 +33,21 @@ def create_app() -> FastAPI:
         description="Backend AI & Data Services for LakeFlow",
     )
 
-    # -------------------------
-    # Middleware
-    # -------------------------
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # sau này siết domain
+        allow_origins=["*"],  # restrict domains later
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
 
-    # ==================================================
-    # BOOTSTRAP DATA_BASE_PATH (CRITICAL)
-    # ==================================================
-    base_str = os.getenv("LAKEFLOW_DATA_BASE_PATH", "/data")
+    app.add_exception_handler(HTTPException, http_exception_handler)
+
+    base_str = os.getenv("LAKE_ROOT", "/data")
     base = Path(base_str).expanduser().resolve()
     runtime_config.set_data_base_path(base)
     print(f"[BOOT] DATA_BASE_PATH = {base}")
 
-    # -------------------------
-    # Routers
-    # -------------------------
     app.include_router(
         auth_router,
         prefix="/auth",
@@ -85,10 +81,9 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(admission_agent_router)
+    app.include_router(library_document_agent_router)
+    app.include_router(library_regulation_agent_router)
 
-    # -------------------------
-    # Health check
-    # -------------------------
     @app.get("/health", tags=["system"])
     def health_check():
         return {"status": "ok"}
@@ -96,5 +91,4 @@ def create_app() -> FastAPI:
     return app
 
 
-# App instance cho Uvicorn
 app = create_app()

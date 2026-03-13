@@ -1,6 +1,6 @@
 """
-NAS/NFS-safe I/O: retry khi đọc/ghi lên mount (tránh Errno 35 Resource deadlock avoided).
-Dùng cho 300_processed, 400_embeddings khi chạy trên Synology/NFS (kể cả trong Docker).
+NAS/NFS-safe I/O: retry when reading/writing to mount (avoid Errno 35 Resource deadlock avoided).
+Used for 300_processed, 400_embeddings when running on Synology/NFS (including in Docker).
 """
 
 import shutil
@@ -13,6 +13,42 @@ from lakeflow.common.jsonio import read_json
 
 NAS_RETRIES = 8
 NAS_RETRY_DELAY = 1.5
+
+
+def nas_safe_exists(path: Path) -> bool:
+    """Path.exists() with retry — avoid Errno 35 on NAS/shared volume."""
+    for attempt in range(NAS_RETRIES):
+        try:
+            return path.exists()
+        except OSError:
+            if attempt == NAS_RETRIES - 1:
+                raise
+            time.sleep(NAS_RETRY_DELAY * (attempt + 1))
+    return False  # unreachable
+
+
+def nas_safe_is_dir(path: Path) -> bool:
+    """Path.is_dir() with retry — avoid Errno 35 on NAS/shared volume."""
+    for attempt in range(NAS_RETRIES):
+        try:
+            return path.is_dir()
+        except OSError:
+            if attempt == NAS_RETRIES - 1:
+                raise
+            time.sleep(NAS_RETRY_DELAY * (attempt + 1))
+    return False  # unreachable
+
+
+def nas_safe_listdir(path: Path) -> list[Path]:
+    """path.iterdir() to list with retry — avoid Errno 35 on NAS/shared volume."""
+    for attempt in range(NAS_RETRIES):
+        try:
+            return list(path.iterdir())
+        except OSError:
+            if attempt == NAS_RETRIES - 1:
+                raise
+            time.sleep(NAS_RETRY_DELAY * (attempt + 1))
+    return []  # unreachable
 
 
 def nas_safe_read_json(path: Path) -> Any:
@@ -62,8 +98,8 @@ def nas_safe_copy(src: Path, dst: Path) -> None:
 
 def nas_safe_find_processed_dir(processed_root: Path, file_hash: str, parent_dir: Optional[str] = None) -> Optional[Path]:
     """
-    Tìm processed_dir cho file_hash. Nếu parent_dir cho sẵn thì không iterdir trên NAS.
-    Có retry khi gọi .exists() / .is_dir().
+    Find processed_dir for file_hash. If parent_dir provided, do not iterdir on NAS.
+    Retries when calling .exists() / .is_dir().
     """
     candidates: list[Path] = []
     if parent_dir:

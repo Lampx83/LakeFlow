@@ -4,25 +4,25 @@ from typing import Dict, Any, List
 import pandas as pd
 
 class StagingError(RuntimeError):
-    """Lỗi staging với lý do rõ ràng, khớp với logic của dự án."""
+    """Staging error with clear reason, matches project logic."""
 
 def analyze_excel(file_path: Path) -> Dict[str, Any]:
     """
-    Phân tích cấu trúc file Excel (XLS/XLSX) để phục vụ quyết định pipeline.
-    Hỗ trợ đa engine để tránh lỗi thiếu dependency.
+    Analyze Excel (XLS/XLSX) file structure for pipeline decisions.
+    Supports multiple engines to avoid missing dependency errors.
     """
 
     if not file_path.exists():
-        raise StagingError(f"Excel file không tồn tại: {file_path}")
+        raise StagingError(f"Excel file does not exist: {file_path}")
 
-    # --------- Xác định Engine dựa trên định dạng file ---------
+    # --------- Determine engine from file format ---------
     ext = file_path.suffix.lower()
     if ext == ".xls":
         engine = "xlrd"
     elif ext == ".xlsx" or ext == ".xlsm":
         engine = "openpyxl"
     else:
-        engine = None # Để pandas tự quyết định cho các định dạng khác
+        engine = None  # Let pandas decide for other formats
 
     try:
         # --------- Load workbook metadata ---------
@@ -32,11 +32,11 @@ def analyze_excel(file_path: Path) -> Dict[str, Any]:
         sheet_count = len(sheet_names)
 
         if sheet_count == 0:
-            raise StagingError("File Excel không có sheet nào.")
+            raise StagingError("Excel file has no sheets.")
 
-        # --------- Phân tích sheet đầu tiên (Lấy mẫu) ---------
+        # --------- Analyze first sheet (sample) ---------
         first_sheet = sheet_names[0]
-        # Đọc 5 dòng đầu để kiểm tra kiểu dữ liệu
+        # Read first 5 rows to check data types
         df_sample = excel.parse(
             first_sheet,
             nrows=5
@@ -46,7 +46,7 @@ def analyze_excel(file_path: Path) -> Dict[str, Any]:
         column_count = len(headers)
         row_count_estimate = _estimate_row_count(file_path, first_sheet, engine)
 
-        # Kiểm tra loại dữ liệu có trong file
+        # Check data types in file
         has_numeric = any(
             pd.api.types.is_numeric_dtype(dtype)
             for dtype in df_sample.dtypes
@@ -64,40 +64,40 @@ def analyze_excel(file_path: Path) -> Dict[str, Any]:
             "primary_sheet": first_sheet,
 
             "column_count": column_count,
-            "headers": [str(h) for h in headers], # Đảm bảo header là chuỗi để lưu JSON
+            "headers": [str(h) for h in headers],  # Ensure header is string for JSON
             "row_count_estimate": row_count_estimate,
 
             "has_numeric_data": has_numeric,
             "has_text_data": has_text,
 
-            # Quyết định kỹ thuật cho Step 2
+            # Technical decisions for Step 2
             "requires_table_extraction": True,
             "requires_text_processing": False,
             "requires_ocr": False,
         }
 
     except ImportError as e:
-        # Bắt lỗi thiếu xlrd hoặc openpyxl để báo cáo rõ ràng trong staging_error.txt
+        # Catch missing xlrd/openpyxl to report clearly in staging_error.txt
         missing_lib = "xlrd" if ext == ".xls" else "openpyxl"
-        raise StagingError(f"Thiếu thư viện hỗ trợ đọc file {ext}: Hãy cài đặt '{missing_lib}'. Chi tiết: {e}")
+        raise StagingError(f"Missing library for reading {ext}: Install '{missing_lib}'. Details: {e}")
     except Exception as e:
-        raise StagingError(f"Lỗi phân tích Excel: {str(e)}")
+        raise StagingError(f"Excel analysis error: {str(e)}")
 
 
 def _estimate_row_count(file_path: Path, sheet_name: str, engine: str) -> int:
     """
-    Ước lượng số dòng mà không load toàn bộ sheet vào memory.
+    Estimate row count without loading entire sheet into memory.
     """
     try:
         df = pd.read_excel(
             file_path,
             sheet_name=sheet_name,
-            usecols=[0],  # Chỉ đọc cột đầu tiên
+            usecols=[0],  # Read first column only
             engine=engine
         )
         return int(df.shape[0])
     except Exception:
-        # Fallback nếu file quá lớn hoặc lỗi cấu trúc
+        # Fallback if file too large or structure error
         return -1
 
 # lampx-------------------------------------
@@ -109,10 +109,10 @@ def _estimate_row_count(file_path: Path, sheet_name: str, engine: str) -> int:
 
 # def analyze_excel(file_path: Path) -> Dict[str, Any]:
 #     """
-#     Phân tích cấu trúc file Excel để phục vụ quyết định pipeline (200_staging).
-
-#     Không xử lý nghiệp vụ.
-#     Không đọc toàn bộ dữ liệu vào memory nếu không cần.
+#     Analyze Excel file structure for pipeline decisions (200_staging).
+#
+#     No business logic processing.
+#     Does not load full data into memory unless needed.
 #     """
 
 #     if not file_path.exists():
@@ -124,11 +124,11 @@ def _estimate_row_count(file_path: Path, sheet_name: str, engine: str) -> int:
 #     sheet_names: List[str] = excel.sheet_names
 #     sheet_count = len(sheet_names)
 
-#     # --------- Phân tích sheet đầu tiên (đủ cho staging) ---------
+#     # --------- Analyze first sheet (enough for staging) ---------
 #     first_sheet = sheet_names[0]
 #     df_sample = excel.parse(
 #         first_sheet,
-#         nrows=5  # chỉ lấy mẫu nhỏ
+#         nrows=5  # take small sample only
 #     )
 
 #     headers = list(df_sample.columns)
@@ -158,7 +158,7 @@ def _estimate_row_count(file_path: Path, sheet_name: str, engine: str) -> int:
 #         "has_numeric_data": has_numeric,
 #         "has_text_data": has_text,
 
-#         # Quyết định kỹ thuật
+#         # Technical decisions
 #         "requires_table_extraction": True,
 #         "requires_text_processing": False,
 #         "requires_ocr": False,
@@ -167,15 +167,15 @@ def _estimate_row_count(file_path: Path, sheet_name: str, engine: str) -> int:
 
 # def _estimate_row_count(file_path: Path, sheet_name: str) -> int:
 #     """
-#     Ước lượng số dòng mà không load toàn bộ sheet.
+#     Estimate row count without loading entire sheet.
 #     """
 #     try:
 #         df = pd.read_excel(
 #             file_path,
 #             sheet_name=sheet_name,
-#             usecols=[0],  # chỉ đọc 1 cột
+#             usecols=[0],  # read 1 column only
 #         )
 #         return int(df.shape[0])
 #     except Exception:
-#         # fallback nếu file quá lớn / lỗi định dạng
+#         # fallback if file too large / format error
 #         return -1

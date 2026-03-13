@@ -13,57 +13,45 @@ from lakeflow.services.qdrant_service import (
     filter_points,
 )
 
-# =====================================================
-# ROUTER
-# =====================================================
-
 router = APIRouter(
     prefix="/qdrant",
     tags=["Qdrant"],
 )
 
-# =====================================================
-# SCHEMAS
-# =====================================================
-
 class QdrantFilterRequest(BaseModel):
     file_hash: Optional[str] = Field(
         default=None,
-        description="Hash của file gốc",
+        description="Hash of source file",
     )
     section_id: Optional[str] = Field(
         default=None,
-        description="ID của section",
+        description="Section ID",
     )
     chunk_id: Optional[int] = Field(
         default=None,
         ge=0,
-        description="ID của chunk",
+        description="Chunk ID",
     )
     limit: int = Field(
         default=50,
         ge=1,
         le=200,
-        description="Số lượng point trả về",
+        description="Number of points to return",
     )
     qdrant_url: Optional[str] = Field(
         default=None,
-        description="URL Qdrant Service (trống = mặc định theo env)",
+        description="Qdrant Service URL (empty = default from env)",
     )
 
 
-# =====================================================
-# ENDPOINTS
-# =====================================================
-
 @router.get("/collections")
 def api_list_collections(
-    qdrant_url: Optional[str] = Query(None, description="URL Qdrant Service (trống = mặc định)"),
+    qdrant_url: Optional[str] = Query(None, description="Qdrant Service URL (empty = default)"),
     user=Depends(verify_token),
 ):
     """
-    Danh sách collections trong Qdrant
-    (dùng cho Qdrant Inspector – read-only)
+    List of collections in Qdrant
+    (for Qdrant Inspector – read-only)
     """
     return {
         "collections": list_collections(qdrant_url=qdrant_url)
@@ -73,11 +61,11 @@ def api_list_collections(
 @router.get("/collections/{name}")
 def api_get_collection_detail(
     name: str,
-    qdrant_url: Optional[str] = Query(None, description="URL Qdrant Service (trống = mặc định)"),
+    qdrant_url: Optional[str] = Query(None, description="Qdrant Service URL (empty = default)"),
     user=Depends(verify_token),
 ):
     """
-    Thông tin chi tiết của một collection
+    Detailed info for a collection
     """
     return get_collection_detail(name, qdrant_url=qdrant_url)
 
@@ -89,18 +77,18 @@ def api_list_points(
         default=50,
         ge=1,
         le=200,
-        description="Số point mỗi lần load",
+        description="Points per load",
     ),
     offset: int = Query(
         default=0,
         ge=0,
-        description="Offset cho scroll",
+        description="Offset for scroll",
     ),
-    qdrant_url: Optional[str] = Query(None, description="URL Qdrant Service (trống = mặc định)"),
+    qdrant_url: Optional[str] = Query(None, description="Qdrant Service URL (empty = default)"),
     user=Depends(verify_token),
 ):
     """
-    Duyệt points theo dạng scroll (read-only)
+    Scroll through points (read-only)
     """
     return {
         "points": list_points(
@@ -119,7 +107,7 @@ def api_filter_points(
     user=Depends(verify_token),
 ):
     """
-    Filter points theo payload metadata
+    Filter points by payload metadata
     """
     return {
         "points": filter_points(

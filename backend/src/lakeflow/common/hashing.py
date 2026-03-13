@@ -4,13 +4,13 @@ import time
 from pathlib import Path
 from typing import Iterable
 
-# Giảm buffer để tránh timeout trên NAS
+# Reduce buffer to avoid timeout on NAS
 BUFFER_SIZE = 1 * 1024 * 1024  # 1MB
 
 MAX_RETRIES = 5
 RETRY_DELAY = 1.0  # seconds
 
-# Các lỗi I/O tạm thời thường gặp trên macOS + CloudStorage
+# Common transient I/O errors on macOS + CloudStorage
 RETRY_ERRNOS = {
     60,  # Operation timed out
     89,  # Operation canceled
@@ -18,7 +18,7 @@ RETRY_ERRNOS = {
 
 
 class TemporaryIOError(RuntimeError):
-    """Lỗi I/O tạm thời (NAS / Cloud sync)."""
+    """Transient I/O error (NAS / Cloud sync)."""
 
 
 def sha256_file(path: Path) -> str:
@@ -48,10 +48,10 @@ def sha256_file(path: Path) -> str:
                 time.sleep(RETRY_DELAY)
                 continue
 
-            # Lỗi I/O nghiêm trọng → raise ngay
+            # Serious I/O error → raise immediately
             raise
 
-    # Retry hết số lần vẫn fail → coi là lỗi tạm thời
+    # Exhausted retries → treat as transient error
     raise TemporaryIOError(
         f"Temporary I/O error after {MAX_RETRIES} retries: {path}"
     ) from last_error

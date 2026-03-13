@@ -1,10 +1,10 @@
 """
 Inbox Scanner
 
-- Quét 000_inbox (toàn bộ hoặc chỉ các thư mục chỉ định)
-- Chỉ yield FILE (không yield thư mục)
-- Domain = thư mục cấp 1 dưới 000_inbox
-- Có log tổng số file để debug / quan sát pipeline
+- Scan 000_inbox (all or specified directories only)
+- Yield only FILE (not directories)
+- Domain = first-level dir under 000_inbox
+- Log total file count for debug / pipeline observation
 """
 
 from pathlib import Path
@@ -13,7 +13,7 @@ from typing import Iterator, Optional
 from lakeflow.pipelines.ingesting.models import InboxFile
 
 
-# Các đuôi file được phép ingest
+# File extensions allowed for ingest
 ALLOWED_EXTENSIONS = {
     ".pdf",
     ".docx",
@@ -29,16 +29,16 @@ def scan_inbox(
     only_under: Optional[list[str]] = None,
 ) -> Iterator[InboxFile]:
     """
-    Scan inbox_root (000_inbox) và yield InboxFile.
+    Scan inbox_root (000_inbox) and yield InboxFile.
 
-    only_under: nếu có, chỉ quét dưới các path này (vd: ["Regulations and Policies"]).
-    Cấu trúc mong đợi:
+    only_under: if set, only scan under these paths (e.g. ["Regulations and Policies"]).
+    Expected structure:
         000_inbox/
             <domain>/
                 <any_depth>/
                     file.ext
 
-    Domain luôn là thư mục cấp 1 dưới inbox_root.
+    Domain is always first-level dir under inbox_root.
     """
 
     if not inbox_root.exists():
@@ -50,7 +50,7 @@ def scan_inbox(
         return
 
     # --------------------------------------------------
-    # Chỉ quét dưới only_under nếu có; ngược lại quét toàn bộ
+    # Only scan under only_under if set; otherwise scan all
     # --------------------------------------------------
     if only_under:
         prefixes = [p.strip().rstrip("/") for p in only_under if p.strip()]
@@ -105,17 +105,21 @@ def scan_inbox(
 
         parts = relative.parts
         if len(parts) < 2:
-            # file nằm trực tiếp dưới 000_inbox (không có domain)
+            # file directly under 000_inbox (no domain)
             domain = "unknown"
+            relative_dir = "unknown"
             print(
                 f"[INBOX][WARN] File without domain folder: {path}"
             )
         else:
             domain = parts[0]
+            # Full path of parent dir relative to inbox (preserves subfolders)
+            relative_dir = str(relative.parent).replace("\\", "/")
 
-        print(f"[INBOX][FILE] Domain={domain} Path={path}")
+        print(f"[INBOX][FILE] Domain={domain} RelativeDir={relative_dir} Path={path}")
 
         yield InboxFile(
             path=path,
             domain=domain,
+            relative_dir=relative_dir,
         )

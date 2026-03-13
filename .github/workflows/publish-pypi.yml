@@ -17,5 +17,5 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          directory: lake-flow
+          directory: backend
           skip-existing: true

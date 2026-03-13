@@ -1,5 +1,5 @@
 """
-DB lưu dữ liệu ứng dụng: tin nhắn Q&A theo user (để thống kê và xóa trong Admin).
+DB for application data: Q&A messages per user (for stats and deletion in Admin).
 """
 import logging
 from pathlib import Path
@@ -34,18 +34,18 @@ def _init_app_db(conn) -> None:
 
 
 def insert_message(username: str, question: str) -> None:
-    """Ghi một tin nhắn (câu hỏi Q&A) của user."""
+    """Insert a message (Q&A question) from a user."""
     conn = _get_conn()
     now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
     conn.execute(
         "INSERT INTO user_messages (username, question, created_at) VALUES (?, ?, ?)",
-        (username, question[:10000], now),  # giới hạn độ dài
+        (username, question[:10000], now),  # limit length
     )
     conn.commit()
 
 
 def get_message_counts_by_user() -> list[tuple[str, int]]:
-    """Trả về danh sách (username, số tin nhắn) sắp xếp theo username."""
+    """Return list of (username, message_count) sorted by username."""
     conn = _get_conn()
     cur = conn.execute(
         "SELECT username, COUNT(*) AS cnt FROM user_messages GROUP BY username ORDER BY username"
@@ -54,7 +54,7 @@ def get_message_counts_by_user() -> list[tuple[str, int]]:
 
 
 def delete_messages_by_user(username: str) -> int:
-    """Xóa toàn bộ tin nhắn của user. Trả về số dòng đã xóa."""
+    """Delete all messages for a user. Returns number of rows deleted."""
     conn = _get_conn()
     cur = conn.execute("DELETE FROM user_messages WHERE username = ?", (username,))
     conn.commit()

@@ -4,10 +4,10 @@ from pathlib import Path
 
 def _resolve_api_base() -> str:
     base = os.getenv("API_BASE_URL", "http://localhost:8011").strip()
-    # Tên service cũ (eduai-backend) không còn — chuẩn hóa sang lakeflow-backend khi chạy Docker
+    # Old service name (eduai-backend) deprecated — normalize to lakeflow-backend when running Docker
     if base and "eduai-backend" in base:
         base = base.replace("eduai-backend", "lakeflow-backend")
-    # Khi chạy dev trên host, "lakeflow-backend" không resolve → dùng localhost
+    # When running dev on host, "lakeflow-backend" does not resolve → use localhost
     if base and "lakeflow-backend" in base:
         try:
             socket.gethostbyname("lakeflow-backend")
@@ -18,16 +18,16 @@ def _resolve_api_base() -> str:
 API_BASE = _resolve_api_base()
 LAKEFLOW_MODE = os.getenv("LAKEFLOW_MODE", "DEV")
 
-# Qdrant Service: mặc định khi không chọn (dev = localhost, docker = lakeflow-qdrant)
+# Qdrant Service: default when not selected (dev = localhost, docker = lakeflow-qdrant)
 QDRANT_DEFAULT_DEV = "http://localhost:6333"
 QDRANT_DEFAULT_DOCKER = "http://lakeflow-qdrant:6333"
 
 
 def _parse_qdrant_services_env() -> list[tuple[str, str]]:
     """
-    Đọc Qdrant services bổ sung từ env QDRANT_SERVICES.
-    Format: URL hoặc "Nhãn|URL", nhiều service cách nhau bằng dấu phẩy.
-    VD: QDRANT_SERVICES="http://qdrant-remote:6333, Production|https://qdrant.prod.example.com:6333"
+    Read additional Qdrant services from env QDRANT_SERVICES.
+    Format: URL or "Label|URL", multiple services separated by comma.
+    Example: QDRANT_SERVICES="http://qdrant-remote:6333, Production|https://qdrant.prod.example.com:6333"
     """
     raw = os.getenv("QDRANT_SERVICES", "").strip()
     if not raw:
@@ -57,8 +57,8 @@ def _parse_qdrant_services_env() -> list[tuple[str, str]]:
 
 def normalize_qdrant_url(url: str | None) -> str | None:
     """
-    Chuẩn hóa URL Qdrant nhập tay: bỏ khoảng trắng thừa, thêm http:// nếu chưa có scheme.
-    Trả về None nếu url rỗng.
+    Normalize manually entered Qdrant URL: trim whitespace, add http:// if no scheme.
+    Returns None if url is empty.
     """
     if not url or not url.strip():
         return None
@@ -70,13 +70,13 @@ def normalize_qdrant_url(url: str | None) -> str | None:
 
 def qdrant_service_options():
     """
-    Danh sách (label, value) cho dropdown Qdrant Service.
-    value=None = mặc định (backend env). Gồm mặc định + localhost + lakeflow-qdrant + các service khai báo thêm qua QDRANT_SERVICES.
+    List of (label, value) for Qdrant Service dropdown.
+    value=None = default (backend env). Includes default + localhost + lakeflow-qdrant + services from QDRANT_SERVICES.
     """
     default_label = (
-        f"Mặc định (localhost:6333)"
+        "Default (localhost:6333)"
         if LAKEFLOW_MODE == "DEV"
-        else "Mặc định (lakeflow-qdrant:6333)"
+        else "Default (lakeflow-qdrant:6333)"
     )
     base = [
         (default_label, None),
@@ -86,20 +86,18 @@ def qdrant_service_options():
     extra = _parse_qdrant_services_env()
     return base + extra
 
-# =========================
-# DATA ROOT (CRITICAL)
-# =========================
+
 DATA_ROOT = Path(
     os.getenv(
-        "LAKEFLOW_DATA_BASE_PATH",
-        "/data",   # default cho Docker
+        "LAKE_ROOT",
+        "/data",   # default for Docker
     )
 ).expanduser().resolve()
 
-# Mô tả mount (hiển thị trong System Settings khi chạy Docker)
+# Mount description (shown in System Settings when running Docker)
 LAKEFLOW_MOUNT_DESCRIPTION = os.getenv("LAKEFLOW_MOUNT_DESCRIPTION", "").strip()
 
 
 def is_running_in_docker() -> bool:
-    """Kiểm tra có đang chạy trong container Docker hay không."""
+    """Check if running inside a Docker container."""
     return Path("/.dockerenv").exists()

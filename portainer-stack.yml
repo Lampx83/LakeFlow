@@ -1,0 +1,55 @@
+# Portainer Stack — use pre-built images (no build).
+# Before deploy:
+#   1. Build and push images to Docker Hub:
+#      cd LakeFlow
+#      docker build -t DOCKERHUB_USER/lakeflow-backend:latest ./backend
+#      docker build -t DOCKERHUB_USER/lakeflow-frontend:latest ./frontend/streamlit
+#      docker push DOCKERHUB_USER/lakeflow-backend:latest
+#      docker push DOCKERHUB_USER/lakeflow-frontend:latest
+#   2. Portainer: Stack → Add stack → Web editor → paste this file.
+#   3. Add Env vars in Portainer: DOCKERHUB_USER (e.g. lampx83), and vars from .env (if any).
+# Do not use: build, container_name, env_file (Portainer typically has no .env).
+
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.16.2
+    ports:
+      - "8013:6333"
+    volumes:
+      - lakeflow_qdrant_data:/qdrant/storage
+
+  lakeflow-backend:
+    image: docker.io/${DOCKERHUB_USER:-lampx83}/lakeflow-backend:latest
+    depends_on:
+      - qdrant
+    ports:
+      - "8011:8011"
+    environment:
+      LAKE_ROOT: /data
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: "6333"
+    volumes:
+      - lakeflow_data:/data
+    command: uvicorn lakeflow.main:app --host 0.0.0.0 --port 8011
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8011/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
+  lakeflow-frontend:
+    image: docker.io/${DOCKERHUB_USER:-lampx83}/lakeflow-frontend:latest
+    depends_on:
+      - lakeflow-backend
+    ports:
+      - "8012:8012"
+    environment:
+      API_BASE_URL: http://lakeflow-backend:8011
+    volumes:
+      - lakeflow_data:/data
+    command: streamlit run app.py --server.port 8012 --server.address 0.0.0.0
+
+volumes:
+  lakeflow_data:
+  lakeflow_qdrant_data:

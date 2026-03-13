@@ -16,7 +16,7 @@ load_dotenv()
 import numpy as np
 from qdrant_client import QdrantClient
 
-from lakeflow.common.nas_io import nas_safe_load_npy
+from lakeflow.common.nas_io import nas_safe_exists, nas_safe_is_dir, nas_safe_listdir, nas_safe_load_npy
 from lakeflow.runtime.config import runtime_config
 from lakeflow.config import paths
 from lakeflow.vectorstore.qdrant_ingest import (
@@ -25,15 +25,11 @@ from lakeflow.vectorstore.qdrant_ingest import (
 )
 
 
-# ======================================================
-# BOOTSTRAP RUNTIME CONFIG (BẮT BUỘC)
-# ======================================================
-
-data_base = os.getenv("LAKEFLOW_DATA_BASE_PATH")
+data_base = os.getenv("LAKE_ROOT")
 if not data_base:
     raise RuntimeError(
-        "LAKEFLOW_DATA_BASE_PATH is not set. "
-        "Example: export LAKEFLOW_DATA_BASE_PATH=/path/to/data_lake"
+        "LAKE_ROOT is not set. "
+        "Example: export LAKE_ROOT=/path/to/data_lake"
     )
 
 base_path = Path(data_base).expanduser().resolve()
@@ -42,17 +38,9 @@ runtime_config.set_data_base_path(base_path)
 print(f"[BOOT] DATA_BASE_PATH3 = {base_path}")
 
 
-# ======================================================
-# QDRANT CONFIG
-# ======================================================
-
 QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.getenv("QDRANT_PORT", "6333"))
 
-
-# ======================================================
-# MAIN
-# ======================================================
 
 def main():
     print("=== RUN QDRANT INGEST (400 -> Qdrant) ===")
@@ -63,19 +51,16 @@ def main():
     print(f"[DEBUG] EMBEDDINGS_PATH = {embeddings_root}")
     print(f"[DEBUG] PROCESSED_PATH  = {processed_root}")
 
-    if not embeddings_root.exists():
+    if not nas_safe_exists(embeddings_root):
         raise RuntimeError(
             f"EMBEDDINGS_PATH does not exist: {embeddings_root}"
         )
 
-    if not processed_root.exists():
+    if not nas_safe_exists(processed_root):
         raise RuntimeError(
             f"PROCESSED_PATH does not exist: {processed_root}"
         )
 
-    # -------------------------
-    # Connect to Qdrant
-    # -------------------------
     try:
         client = QdrantClient(
             host=QDRANT_HOST,
@@ -97,40 +82,38 @@ def main():
 
     ingested = skipped = failed = 0
 
-    # 400_embeddings: <domain>/<file_hash>/ hoặc (cũ) <file_hash>/
+    # 400_embeddings: <parent_dir>/<file_hash>/ (nested); recursive walk with nas_safe_* to avoid Errno 35 on NAS
     def iter_embeddings_entries():
-        for entry in embeddings_root.iterdir():
-            if not entry.is_dir() or entry.name.startswith("."):
-                continue
-            if (entry / "embedding.npy").exists():
-                yield entry  # cấu trúc cũ: embeddings_root/file_hash/
-            else:
-                for sub in entry.iterdir():
-                    if sub.is_dir() and (sub / "embedding.npy").exists():
-                        yield sub  # cấu trúc mới: embeddings_root/domain/file_hash/
+        stack = [embeddings_root]
+        while stack:
+            d = stack.pop()
+            for entry in nas_safe_listdir(d):
+                if not nas_safe_is_dir(entry) or entry.name.startswith("."):
+                    continue
+                if nas_safe_exists(entry / "embedding.npy"):
+                    yield entry
+                else:
+                    stack.append(entry)
 
     emb_dirs = list(iter_embeddings_entries())
     print(f"[DEBUG] Found {len(emb_dirs)} embedding dirs")
 
     only_folders_set = set(only_folders) if only_folders else None
 
-    # -------------------------
-    # Iterate over embeddings
-    # -------------------------
     for emb_dir in emb_dirs:
         file_hash = emb_dir.name
-        parent_name = emb_dir.parent.name if emb_dir.parent != embeddings_root else None
-        rel_path = f"{parent_name}/{file_hash}" if parent_name else file_hash
+        parent_dir = str(emb_dir.parent.relative_to(embeddings_root)).replace("\\", "/") if emb_dir.parent != embeddings_root else ""
+        rel_path = f"{parent_dir}/{file_hash}" if parent_dir else file_hash
 
-        # Lọc theo thư mục đã chọn trên cây: domain, domain/file_hash, hoặc file_hash (cấu trúc cũ)
+        # Filter by selected tree folder
         if only_folders_set is not None:
             if rel_path in only_folders_set:
                 pass
             elif any(rel_path.startswith(p + "/") for p in only_folders_set):
                 pass
-            elif parent_name and parent_name in only_folders_set:
+            elif parent_dir and parent_dir in only_folders_set:
                 pass
-            elif not parent_name and file_hash in only_folders_set:
+            elif not parent_dir and file_hash in only_folders_set:
                 pass
             else:
                 continue
@@ -139,35 +122,31 @@ def main():
 
         print(f"\n[QDRANT] Processing {file_hash}")
 
-        # ---------- Skip: no embedding ----------
-        if not embeddings_file.exists():
+        if not nas_safe_exists(embeddings_file):
             print(f"[QDRANT][SKIP] No embedding.npy for {file_hash}")
             skipped += 1
             continue
 
         try:
-            # ---------- Load vectors (đọc từ NAS với retry) ----------
             vectors = nas_safe_load_npy(embeddings_file)
             if vectors.ndim != 2:
                 raise RuntimeError(
                     f"Invalid embedding shape for {file_hash}"
                 )
 
-            # ---------- Ensure collection ----------
             ensure_collection(
                 client=client,
                 vector_dim=vectors.shape[1],
                 collection_name=collection_name,
             )
 
-            # ---------- Ingest (truyền parent_name để tránh iterdir trên NAS) ----------
             count = ingest_file_embeddings(
                 client=client,
                 file_hash=file_hash,
                 embeddings_dir=emb_dir,
                 processed_root=processed_root,
                 collection_name=collection_name,
-                parent_dir=parent_name,
+                parent_dir=parent_dir or None,
             )
 
             print(
@@ -182,9 +161,6 @@ def main():
                 f"[QDRANT][FAIL] {file_hash}: {exc}"
             )
 
-    # -------------------------
-    # Summary
-    # -------------------------
     print("\n=================================")
     print("QDRANT INGEST SUMMARY")
     print(f"Ingested : {ingested}")

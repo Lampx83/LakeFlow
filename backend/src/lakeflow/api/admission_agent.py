@@ -1,16 +1,21 @@
 """
-Tro ly (Agent) Admission - API tuong thich Research Agent: /metadata, /data, /ask.
-Su dung Qwen3 8b, du lieu tu collection "Admission" trong Qdrant.
+Admission Agent - API compatible with Research Agent: /metadata, /data, /ask.
+Uses Qwen3 8b, data from collection "Admission" in Qdrant.
 """
 
 import time
 import requests
 from fastapi import APIRouter, HTTPException, Query
+
+from lakeflow.i18n import i18n_detail
 from pydantic import BaseModel, Field
 
 from lakeflow.common.text_normalizer import canonicalize_text
 from lakeflow.services.ollama_embed_service import embed_batch
 from lakeflow.core.config import get_qdrant_url, LLM_BASE_URL, LLM_MODEL, OPENAI_API_KEY
+from lakeflow.core.config import get_qdrant_url, LLM_MODEL
+from lakeflow.services.ollama_embed_service import embed_batch
+from lakeflow.services.llm_chat_service import chat_completion
 from lakeflow.services.qdrant_service import get_client
 
 
@@ -27,60 +32,49 @@ router = APIRouter(
 )
 
 
-# ---------------------------------------------------------------------------
-# Schemas (tuong thich Research agent)
-# ---------------------------------------------------------------------------
-
 class AskRequest(BaseModel):
     session_id: str | None = None
     model_id: str | None = None
     user: str | None = None
-    prompt: str = Field(..., description="Cau hoi cua nguoi dung")
+    prompt: str = Field(..., description="User's question")
     context: dict | None = None
 
-
-# ---------------------------------------------------------------------------
-# GET /metadata
-# ---------------------------------------------------------------------------
 
 @router.get("/metadata")
 def get_metadata() -> dict:
     """
-    Metadata cua Tro ly Admission (tuong thich Research agent).
+    Admission Agent metadata (compatible with Research agent).
     """
     return {
-        "name": "Admission",
-        "description": "Tra loi cau hoi ve tuyen sinh, quy che tuyen sinh va tai lieu lien quan. Du lieu lay tu collection Admission trong Qdrant.",
+        "name": "Admission Information",
+        "description": "Answer questions about admissions, enrollment regulations, and related documents. Data from Admission collection in Qdrant.",
         "version": "1.0.0",
         "developer": "LakeFlow",
-        "capabilities": ["admission", "tuyen sinh", "quy che", "tai lieu"],
+        "capabilities": ["admission", "enrollment", "regulations", "documents"],
         "supported_models": [
             {
                 "model_id": "qwen3:8b",
                 "name": "Qwen3 8B",
-                "description": "Mo hinh Ollama cho hoi dap dua tren tai lieu Admission",
+                "description": "Ollama model for Q&A based on Admission documents",
                 "accepted_file_types": [],
             },
         ],
         "sample_prompts": [
-            "Dieu kien tuyen sinh dai hoc chinh quy la gi?",
-            "Thoi gian nop ho so tuyen sinh nam nay?",
-            "Cac nganh dao tao va chi tieu tuyen sinh?",
+            "What is the total regular university enrollment quota for 2026?",
+            "What are the new CTTA programs in 2026 enrollment?",
+            "What is the AI enrollment quota for 2026?",
+            "List of high-quality (CLC) programs for 2026 enrollment?",
         ],
         "provided_data_types": [
-            {"type": "qdrant_collection", "description": "Collection Admission trong Qdrant"},
+            {"type": "qdrant_collection", "description": "Admission collection in Qdrant"},
         ],
         "contact": "",
         "status": "active",
     }
 
 
-# ---------------------------------------------------------------------------
-# GET /data - danh sach nguon du lieu (tu collection Admission)
-# ---------------------------------------------------------------------------
-
 def _collect_sources_from_collection(collection: str, limit: int = 500) -> list[dict]:
-    """Scroll collection, thu thap cac nguon (source) duy nhat tu payload."""
+    """Scroll collection, collect unique sources from payload."""
     sources_seen: set[str] = set()
     sources: list[dict] = []
     client = get_client(None)
@@ -117,7 +111,7 @@ def _collect_sources_from_collection(collection: str, limit: int = 500) -> list[
 @router.get("/data")
 def get_data(limit: int = Query(100, ge=1, le=500)):
     """
-    Danh sach nguon du lieu tu collection Admission.
+    List of data sources from Admission collection.
     """
     try:
         client = get_client(None)
@@ -125,7 +119,11 @@ def get_data(limit: int = Query(100, ge=1, le=500)):
     except Exception as e:
         raise HTTPException(
             status_code=503,
-            detail=f"Collection {ADMISSION_COLLECTION} khong ton tai hoac Qdrant chua san sang: {e}",
+            detail=i18n_detail(
+                "admission.collection_not_exist",
+                collection=ADMISSION_COLLECTION,
+                error=str(e),
+            ),
         )
     sources = _collect_sources_from_collection(ADMISSION_COLLECTION, limit=limit)
     return {"sources": sources, "count": len(sources)}
@@ -206,15 +204,15 @@ def _build_sources_from_contexts(contexts: list[dict]) -> list[dict]:
 @router.post("/ask")
 def ask(req: AskRequest):
     """
-    RAG: Tim context tu semantic search tren collection Admission, goi LLM tra loi.
+    RAG: Retrieve relevant passages from Admission collection, call LLM to answer.
     """
     prompt = req.prompt.strip()
     if not prompt:
-        raise HTTPException(status_code=400, detail="prompt khong duoc de trong")
+        raise HTTPException(status_code=400, detail=i18n_detail("admission.prompt_empty"))
 
-    # 1. Embed query
-    expanded_query = canonicalize_text(prompt)
-    query_vector = embed_batch([expanded_query])[0]
+    # 1. Embed query (using Ollama qwen3-embedding - matches Admission collection)
+    expanded = canonicalize_text(prompt)
+    query_vector = embed_batch([expanded])[0]
 
     # 2. Search Qdrant
     base = get_qdrant_url(None)
@@ -232,7 +230,7 @@ def ask(req: AskRequest):
     except requests.RequestException as exc:
         raise HTTPException(
             status_code=503,
-            detail=f"Qdrant search that bai: {exc}",
+            detail=i18n_detail("admission.qdrant_search_failed", error=str(exc)),
         )
 
     data = resp.json()
@@ -240,9 +238,11 @@ def ask(req: AskRequest):
 
     if not points:
         return {
-            "answer": "Theo cac tai lieu duoc cung cap, khong co thong tin de tra loi cau hoi nay.",
-            "contexts": [],
-            "model_used": LLM_MODEL,
+            "session_id": req.session_id,
+            "status": "success",
+            "content_markdown": "According to the provided documents, there is no information to answer this question.",
+            "meta": {"model": LLM_MODEL},
+            "attachments": [],
         }
 
     context_texts = []
@@ -263,7 +263,7 @@ def ask(req: AskRequest):
     sources = _build_sources_from_contexts(contexts)
 
     context_block = "\n\n".join(
-        f"[Context {i+1}]:\n{t}" for i, t in enumerate(context_texts)
+        f"[ {i+1}]:\n{t}" for i, t in enumerate(context_texts)
     )
 
 
@@ -316,31 +316,29 @@ def ask(req: AskRequest):
 
     t0 = time.time()
     try:
-        llm_resp = requests.post(chat_url, json=llm_payload, headers=headers, timeout=60)
-        llm_resp.raise_for_status()
-        llm_data = llm_resp.json()
-        answer = llm_data["choices"][0]["message"]["content"]
-        model_used = llm_data.get("model", LLM_MODEL)
-        usage = llm_data.get("usage", {})
-        prompt_tokens = usage.get("prompt_tokens")
-        completion_tokens = usage.get("completion_tokens")
+        answer, model_used = chat_completion(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.3,
+            max_tokens=1000,
+        )
     except requests.RequestException as exc:
         raise HTTPException(
             status_code=500,
-            detail=f"LLM API that bai: {exc}",
+            detail=i18n_detail("admission.llm_api_failed", error=str(exc)),
         )
     except (KeyError, IndexError) as exc:
         raise HTTPException(
             status_code=500,
-            detail=f"Phan hoi LLM khong hop le: {exc}",
+            detail=i18n_detail("admission.invalid_llm_response", error=str(exc)),
         )
 
     response_time_ms = int((time.time() - t0) * 1000)
     tokens_used = None
-    if prompt_tokens is not None and completion_tokens is not None:
-        tokens_used = prompt_tokens + completion_tokens
 
-    # Format tuong thich Research Chat: status, content_markdown, meta
+    # Format compatible with Research Chat: content_markdown only
     return {
         "session_id": req.session_id,
         "status": "success",
@@ -351,7 +349,4 @@ def ask(req: AskRequest):
             "tokens_used": tokens_used,
         },
         "attachments": [],
-        # Giu them cho client LakeFlow neu can
-        "answer": answer,
-        "contexts": contexts,
     }

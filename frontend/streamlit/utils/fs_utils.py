@@ -19,8 +19,8 @@ def list_dir(path: Path) -> Tuple[List[Path], List[Path]]:
 
 def list_dir_safe(path: Path) -> Tuple[List[Path], List[Tuple[Path, int]]]:
     """
-    Giống list_dir nhưng trả về (dirs, [(file_path, size)]).
-    Dùng cho cache vì size cần cho hiển thị, tránh gọi stat() lại.
+    Like list_dir but returns (dirs, [(file_path, size)]).
+    Used for cache since size needed for display, avoids re-calling stat().
     """
     dirs, files = [], []
     for p in sorted(path.iterdir()):

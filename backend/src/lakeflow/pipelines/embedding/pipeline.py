@@ -1,7 +1,7 @@
-# file này thực hiện:
-#   - Load model embedding
-#   - Tạo vector
-#   - Lưu embedding.npy
+# This file:
+#   - Loads embedding model
+#   - Creates vectors
+#   - Saves embedding.npy
 # ==========================================================
 from pathlib import Path
 from typing import Literal, Optional
@@ -22,10 +22,11 @@ def run_embedding_pipeline(
     embeddings_root: Path,
     force: bool = False,
     parent_dir: Optional[str] = None,
+    model: Optional[str] = None,
 ) -> EmbeddingStatus:
     """
-    parent_dir: thư mục cha (domain) — output sẽ là 400_embeddings/<parent_dir>/<file_hash>/
-    Nếu không truyền: 400_embeddings/<file_hash>/ (giữ tương thích).
+    parent_dir: parent dir (domain) — output will be 400_embeddings/<parent_dir>/<file_hash>/
+    If not provided: 400_embeddings/<file_hash>/ (legacy compatible).
     """
 
     # =====================================================
@@ -46,7 +47,7 @@ def run_embedding_pipeline(
         return "SKIPPED"
 
     # =====================================================
-    # 2. Load chunks (đọc từ NAS với retry)
+    # 2. Load chunks (read from NAS with retry)
     # =====================================================
     chunks = nas_safe_read_json(chunks_file)
     texts = [c["text"].strip() for c in chunks if c.get("text")]
@@ -69,17 +70,19 @@ def run_embedding_pipeline(
     # ).astype("float32")
     
     # =====================================================
-    # 3. Embed via Ollama (Qwen3 4096-dim)
+    # 3. Embed via Ollama
     # =====================================================
-    print(f"[400] Embedding {len(texts)} chunks via Ollama for {file_hash}")
+    use_model = (model or "").strip() or None
+    model_label = use_model or "default (EMBED_MODEL)"
+    print(f"[400] Embedding {len(texts)} chunks via Ollama (model={model_label}) for {file_hash}")
 
     BATCH_SIZE = 16
     all_vectors = []
 
     for i in range(0, len(texts), BATCH_SIZE):
-        batch = texts[i:i+BATCH_SIZE] 
+        batch = texts[i:i+BATCH_SIZE]
         normalized_chunks = [canonicalize_text(c) for c in batch]
-        batch_vectors = embed_batch(normalized_chunks)
+        batch_vectors = embed_batch(normalized_chunks, model=use_model)
         all_vectors.extend(batch_vectors)
 
     vectors = np.array(all_vectors, dtype="float32")
