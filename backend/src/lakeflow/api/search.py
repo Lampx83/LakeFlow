@@ -17,6 +17,10 @@ from lakeflow.catalog.app_db import insert_message
 from lakeflow.vectorstore.constants import COLLECTION_NAME as DEFAULT_COLLECTION_NAME
 from lakeflow.core.config import get_qdrant_url, LLM_BASE_URL, LLM_MODEL, OPENAI_API_KEY
 
+import os
+from lakeflow.catalog.db import get_connection
+from lakeflow.config.paths import catalog_db_path
+
 router = APIRouter(
     prefix="/search",
     tags=["Search"],
@@ -108,6 +112,75 @@ def semantic_search(req: SemanticSearchRequest):
     }
 
 
+# -----------------------------------------------------------
+# hàm lấy tên file từ file_hash
+#    - tra file_hash -> source_path
+#    - lấy basename để ra tên file thật
+#    - tạo danh sách sources không bị trùng
+# -----------------------------------------------------------
+def _resolve_filenames_by_hash(file_hashes: list[str]) -> dict[str, str]:
+    hashes = [h for h in file_hashes if h]
+    if not hashes:
+        return {}
+
+    conn = get_connection(catalog_db_path())
+    try:
+        placeholders = ",".join("?" for _ in hashes)
+        sql = f"""
+            SELECT hash, source_path
+            FROM ingest_log
+            WHERE hash IN ({placeholders})
+              AND source_path IS NOT NULL
+            ORDER BY id DESC
+        """
+        rows = conn.execute(sql, hashes).fetchall()
+
+        mapping = {}
+        for file_hash, source_path in rows:
+            if file_hash and source_path and file_hash not in mapping:
+                mapping[file_hash] = os.path.basename(source_path)
+
+        return mapping
+    finally:
+        conn.close()
+
+
+def _title_from_filename(filename: str | None) -> str | None:
+    if not filename:
+        return None
+
+    name = os.path.splitext(filename)[0]
+    name = name.replace("-", " ").replace("_", " ")
+    name = " ".join(name.split())
+
+    return name
+
+
+def _build_sources_from_contexts(contexts: list[dict]) -> list[dict]:
+    file_hashes = [c.get("file_hash") for c in contexts if c.get("file_hash")]
+    filename_map = _resolve_filenames_by_hash(file_hashes)
+
+    sources = []
+    seen = set()
+
+    for ctx in contexts:
+        file_hash = ctx.get("file_hash")
+        filename = filename_map.get(file_hash)
+
+        item = {
+            "title": _title_from_filename(filename) or filename or file_hash or "Tài liệu không rõ tên",
+            "file": filename,
+            "page": None,
+        }
+
+        key = (item["title"], item["file"], item["page"])
+        if key not in seen:
+            seen.add(key)
+            sources.append(item)
+
+    return sources
+
+
 @router.post(
     "/qa",
     response_model=QAResponse,
@@ -178,6 +251,7 @@ def qa(req: QARequest, auth_payload: dict = Depends(verify_token)):
         
         if context_text:
             context_texts.append(context_text)
+    sources = _build_sources_from_contexts(contexts)
     
     # --------------------------------------------------
     # 2. Build prompt với context
@@ -187,23 +261,25 @@ def qa(req: QARequest, auth_payload: dict = Depends(verify_token)):
         for i, text in enumerate(context_texts)
     ])
     
-    system_prompt = """Bạn đang tham gia một demo RAG (Retrieval-Augmented Generation). Nhiệm vụ của bạn là trả lời câu hỏi CHỈ dựa trên các đoạn tài liệu (context) được cung cấp bên dưới.
+    system_prompt = """Bạn là trợ lý tuyển sinh.
 
-QUY TẮC BẮT BUỘC:
-- Chỉ được trả lời dựa trên nội dung trong context. Không dùng kiến thức bên ngoài, không suy đoán thêm.
-- Nếu câu trả lời có trong context: trích dẫn hoặc tóm tắt từ context một cách chính xác, trả lời bằng tiếng Việt.
-- Nếu context không chứa thông tin để trả lời câu hỏi: hãy nói rõ "Theo các tài liệu được cung cấp, không có thông tin để trả lời câu hỏi này." và không bịa đáp án.
-- Trả lời ngắn gọn, rõ ràng, bằng tiếng Việt."""
+    QUY TẮC BẮT BUỘC:
+    - Chỉ được trả lời dựa trên nội dung trong context. Không dùng kiến thức bên ngoài, không suy đoán thêm.
+    - Không được mở đầu bằng các cụm như: "Dựa trên context", "Theo context", "Theo tài liệu được cung cấp", "Dựa trên thông tin được cung cấp".
+    - Không nhắc tới từ "context" trong câu trả lời.
+    - Nếu câu trả lời có trong context: trích dẫn hoặc tóm tắt từ context một cách chính xác, trả lời bằng tiếng Việt.
+    - Nếu context không chứa thông tin để trả lời câu hỏi: hãy nói rõ "Theo các tài liệu được cung cấp, không có thông tin để trả lời câu hỏi này." và không bịa đáp án.
+    - Trả lời trực tiếp, tự nhiên, rõ ràng bằng tiếng Việt."""
 
-    user_prompt = f"""Các đoạn tài liệu (context) dùng để trả lời — CHỈ dựa vào đây:
+    user_prompt = f"""Thông tin tham khảo:
 
-{context_block}
+    {context_block}
 
----
-Câu hỏi: {req.question}
+    ---
+    Câu hỏi: {req.question}
 
-Trả lời (chỉ dựa trên context trên):"""
-    
+    Hãy trả lời trực tiếp câu hỏi bằng tiếng Việt:"""
+        
     # --------------------------------------------------
     # 3. Gọi LLM (Ollama proxy mặc định hoặc OpenAI)
     # --------------------------------------------------
@@ -248,10 +324,12 @@ Trả lời (chỉ dựa trên context trên):"""
         insert_message(username=auth_payload["sub"], question=req.question)
     except Exception:
         pass  # Không làm fail request Q&A nếu ghi DB lỗi
-
+    
     return {
         "question": req.question,
         "answer": answer,
         "contexts": contexts,
+        "sources": sources,
         "model_used": model_used,
+        
     }
