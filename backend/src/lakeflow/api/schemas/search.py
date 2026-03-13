@@ -136,6 +136,11 @@ class QARequest(BaseModel):
         description="URL Qdrant Service (trống = mặc định: localhost:6333 khi dev, lakeflow-qdrant:6333 khi docker)"
     )
 
+class SourceItem(BaseModel):
+    title: Optional[str] = None
+    file: Optional[str] = None
+    page: Optional[int] = None
+
 
 class QAResponse(BaseModel):
     """
@@ -147,7 +152,26 @@ class QAResponse(BaseModel):
         ...,
         description="Các context chunks được sử dụng"
     )
+    sources: List[SourceItem] = Field(
+        default_factory=list,
+        description="Danh sách nguồn tài liệu để frontend hiển thị"
+    )
     model_used: Optional[str] = Field(
         None,
         description="Model LLM được sử dụng"
     )
+
+# class QAResponse(BaseModel):
+#     """
+#     Response cho API Q&A
+#     """
+#     question: str
+#     answer: str
+#     contexts: List[SemanticSearchResult] = Field(
+#         ...,
+#         description="Các context chunks được sử dụng"
+#     )
+#     model_used: Optional[str] = Field(
+#         None,
+#         description="Model LLM được sử dụng"
+#     )
