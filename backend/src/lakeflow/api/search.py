@@ -1,4 +1,3 @@
-import json
 from fastapi import APIRouter, HTTPException, Depends
 import requests
 
@@ -9,17 +8,14 @@ from lakeflow.api.schemas.search import (
     SemanticSearchResponse,
     QARequest,
     QAResponse,
-    QADebugInfo,
 )
 
 from lakeflow.common.text_normalizer import canonicalize_text
-from lakeflow.services.ollama_embed_service import embed_batch, OLLAMA_EMBED_URL, EMBED_MODEL
+from lakeflow.services.ollama_embed_service import embed_batch
 from lakeflow.core.auth import verify_token
-from lakeflow.i18n import i18n_detail
 from lakeflow.catalog.app_db import insert_message
 from lakeflow.vectorstore.constants import COLLECTION_NAME as DEFAULT_COLLECTION_NAME
 from lakeflow.core.config import get_qdrant_url, LLM_BASE_URL, LLM_MODEL, OPENAI_API_KEY
-from lakeflow.services.llm_chat_service import chat_completion, USE_OLLAMA_NATIVE_CHAT
 
 import os
 from lakeflow.catalog.db import get_connection
@@ -34,8 +30,8 @@ router = APIRouter(
 @router.post(
     "/embed",
     response_model=EmbedResponse,
-    summary="Vectorize string",
-    description="Return vector embedding of a string (uses same model as semantic search).",
+    summary="Vector hóa chuỗi",
+    description="Trả về vector embedding của một chuỗi (dùng cùng model với semantic search).",
 )
 def embed_text(req: EmbedRequest) -> dict:
     vector = embed_batch([req.text])[0]
@@ -53,12 +49,19 @@ def embed_text(req: EmbedRequest) -> dict:
 )
 def semantic_search(req: SemanticSearchRequest):
     """
-    Semantic search using Qdrant REST API (requests).
+    Semantic search dùng Qdrant REST API (requests)
     """
 
+    # --------------------------------------------------
+    # 1. Embed query
+    # --------------------------------------------------
+    
     expanded_query = canonicalize_text(req.query)
     query_vector = embed_batch([expanded_query])[0]
 
+    # --------------------------------------------------
+    # 2. Call Qdrant REST API
+    # --------------------------------------------------
     base = get_qdrant_url(req.qdrant_url)
     coll = (req.collection_name or DEFAULT_COLLECTION_NAME).strip() or DEFAULT_COLLECTION_NAME
     url = f"{base}/collections/{coll}/points/search"
@@ -83,6 +86,10 @@ def semantic_search(req: SemanticSearchRequest):
         raise RuntimeError(f"Qdrant search failed: {exc}")
 
     data = resp.json()
+
+    # --------------------------------------------------
+    # 3. Parse response
+    # --------------------------------------------------
     points = data.get("result", [])
 
     results = []
@@ -172,50 +179,6 @@ def _build_sources_from_contexts(contexts: list[dict]) -> list[dict]:
             sources.append(item)
 
     return sources
-def _curl_multiline(url: str, payload_obj: dict, *, auth: bool = False) -> str:
-    """Build multiline curl command: curl URL \\ -H ... \\ -d '{...}'"""
-    payload = json.dumps(payload_obj, ensure_ascii=False, indent=2)
-    payload_escaped = payload.replace("'", "'\"'\"'")
-    lines = [f"curl '{url}' \\", '  -H "Content-Type: application/json" \\']
-    if auth:
-        lines.append('  -H "Authorization: Bearer $OPENAI_API_KEY" \\')
-    lines.append(f"  -d '{payload_escaped}'")
-    return "\n".join(lines)
-
-
-def _curl_embed(question: str) -> str:
-    payload_obj = {"model": EMBED_MODEL, "input": [question]}
-    return _curl_multiline(OLLAMA_EMBED_URL, payload_obj)
-
-
-def _curl_search(qdrant_base: str, coll: str, vector: list, top_k: int, score_threshold: float | None) -> str:
-    body: dict = {"vector": vector, "limit": top_k, "with_payload": True, "with_vector": False}
-    if score_threshold is not None:
-        body["score_threshold"] = score_threshold
-    url = f"{qdrant_base.rstrip('/')}/collections/{coll}/points/search"
-    return _curl_multiline(url, body)
-
-
-def _curl_complete(messages: list, temperature: float, max_tokens: int) -> str:
-    """Curl complete: standard format, matches backend endpoint in use."""
-    base = LLM_BASE_URL.rstrip("/")
-    if USE_OLLAMA_NATIVE_CHAT:
-        url = f"{base}/api/chat"
-        payload_obj = {
-            "model": LLM_MODEL,
-            "messages": messages,
-            "stream": False,
-            "options": {"temperature": temperature, "num_predict": 1000},
-        }
-    else:
-        url = f"{base}/v1/chat/completions"
-        payload_obj = {
-            "model": LLM_MODEL,
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        }
-    return _curl_multiline(url, payload_obj, auth=bool(OPENAI_API_KEY))
 
 
 @router.post(
@@ -224,31 +187,18 @@ def _curl_complete(messages: list, temperature: float, max_tokens: int) -> str:
 )
 def qa(req: QARequest, auth_payload: dict = Depends(verify_token)):
     """
-    Q&A with RAG: Find context from semantic search, then use LLM to answer.
-    Messages (questions) are recorded by username for Admin statistics.
-    Returns debug_info with curl commands and step progress.
+    Q&A với RAG: Tìm context từ semantic search, sau đó dùng LLM để trả lời.
+    Tin nhắn (câu hỏi) được ghi theo username để thống kê trong Admin.
     """
-    steps_done: list[str] = []
-    curl_embed = _curl_embed(req.question)
-
-    expanded_query = canonicalize_text(req.question)
-    try:
-        query_vector = embed_batch([expanded_query])[0]
-    except (RuntimeError, requests.RequestException) as exc:
-        raise HTTPException(
-            status_code=500,
-            detail=i18n_detail(
-                "search.step1_failed",
-                curl=curl_embed,
-                error=str(exc),
-            ),
-        )
-
-    steps_done.append("1. Embed question (Ollama)")
+    # --------------------------------------------------
+    # 1. Semantic search để lấy context
+    # --------------------------------------------------
+    expanded_query = canonicalize_text(req.question)    
+    query_vector = embed_batch([expanded_query])[0]
+    
     base = get_qdrant_url(req.qdrant_url)
     coll = (req.collection_name or DEFAULT_COLLECTION_NAME).strip() or DEFAULT_COLLECTION_NAME
     url = f"{base}/collections/{coll}/points/search"
-    curl_search = _curl_search(base, coll, query_vector, req.top_k, req.score_threshold)
 
     search_body = {
         "vector": query_vector,
@@ -269,21 +219,16 @@ def qa(req: QARequest, auth_payload: dict = Depends(verify_token)):
     except requests.RequestException as exc:
         raise HTTPException(
             status_code=500,
-            detail=i18n_detail(
-                "search.step2_failed",
-                curl=curl_search,
-                error=str(exc),
-            ),
+            detail=f"Qdrant search failed: {exc}"
         )
 
-    steps_done.append("2. Find context (Qdrant)")
     data = resp.json()
     points = data.get("result", [])
 
     if not points:
         raise HTTPException(
             status_code=404,
-            detail=i18n_detail("search.step2_no_context", curl=curl_search),
+            detail="Không tìm thấy context phù hợp để trả lời câu hỏi"
         )
 
     # Parse context results
@@ -308,6 +253,9 @@ def qa(req: QARequest, auth_payload: dict = Depends(verify_token)):
             context_texts.append(context_text)
     sources = _build_sources_from_contexts(contexts)
     
+    # --------------------------------------------------
+    # 2. Build prompt với context
+    # --------------------------------------------------
     context_block = "\n\n".join([
         f"[Context {i+1}]:\n{text}"
         for i, text in enumerate(context_texts)
@@ -350,32 +298,28 @@ def qa(req: QARequest, auth_payload: dict = Depends(verify_token)):
         headers["Authorization"] = f"Bearer {OPENAI_API_KEY}"
 
     try:
-        answer, model_used = chat_completion(
-            messages=messages,
-            temperature=req.temperature,
-            max_tokens=1000,
+        llm_resp = requests.post(
+            chat_url,
+            json=llm_payload,
+            headers=headers,
+            timeout=60,
         )
+        llm_resp.raise_for_status()
+        llm_data = llm_resp.json()
+        answer = llm_data["choices"][0]["message"]["content"]
+        model_used = llm_data.get("model", LLM_MODEL)
     except requests.RequestException as exc:
         raise HTTPException(
             status_code=500,
-            detail=i18n_detail(
-                "search.step3_failed",
-                curl=curl_complete,
-                error=str(exc),
-            ),
+            detail=f"LLM API call failed: {exc}",
         )
     except (KeyError, IndexError) as exc:
         raise HTTPException(
             status_code=500,
-            detail=i18n_detail(
-                "search.step3_invalid_response",
-                curl=curl_complete,
-                error=str(exc),
-            ),
+            detail=f"Invalid LLM API response: {exc}",
         )
 
-    steps_done.append("3. Call LLM (Complete)")
-
+    # Ghi tin nhắn theo user (để thống kê / xóa trong Admin)
     try:
         insert_message(username=auth_payload["sub"], question=req.question)
     except Exception:
@@ -387,10 +331,5 @@ def qa(req: QARequest, auth_payload: dict = Depends(verify_token)):
         "contexts": contexts,
         "sources": sources,
         "model_used": model_used,
-        "debug_info": QADebugInfo(
-            steps_completed=steps_done,
-            curl_embed=curl_embed,
-            curl_search=curl_search,
-            curl_complete=curl_complete,
-        ),
+        
     }
