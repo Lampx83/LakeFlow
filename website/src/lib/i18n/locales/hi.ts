@@ -309,6 +309,7 @@ export const hi: Record<string, string> = {
   "docs.config.dockerDefaults2": "QDRANT_HOST=lakeflow-qdrant",
   "docs.config.dockerDefaults3": "QDRANT_PORT=6333",
   "docs.config.dockerDefaults4": "API_BASE_URL=http://lakeflow-backend:8011 (frontend)",
+  "docs.config.dockerDefaults5": "LLM_BASE_URL=http://ollama:11434 (backend → उसी stack में Ollama सेवा)",
   "docs.config.volumeNote": "वॉल्यूम lakeflow_data device: $HOST_LAKE_PATH — .env से।",
   "docs.config.createZonesTitle": "ज़ोन बनाएं",
   "docs.config.createZonesIntro": "ज़ोन नहीं हों तो Data Lake डायरेक्टरी में बनाएं:",

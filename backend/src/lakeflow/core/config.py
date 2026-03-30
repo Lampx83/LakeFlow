@@ -60,7 +60,7 @@ QDRANT_URL = f"http://{QDRANT_HOST}:{QDRANT_PORT}"
 # =====================================================
 # LLM (Q&A / RAG) – Ollama proxy (default) or OpenAI
 # =====================================================
-# Default: Ollama via Research (LLM_BASE_URL + LLM_MODEL), no API key needed.
+# Docker Compose sets LLM_BASE_URL=http://ollama:11434 on lakeflow-backend. Local dev: set LLM_BASE_URL in .env.
 # To use OpenAI: set OPENAI_API_KEY (and optionally OPENAI_BASE_URL, OPENAI_MODEL).
 
 _llm_base = (os.getenv("LLM_BASE_URL") or os.getenv("OLLAMA_BASE_URL") or "").strip()

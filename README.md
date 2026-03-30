@@ -37,8 +37,12 @@ DOCKER_BUILDKIT=1 docker compose up --build
 | Backend API  | http://localhost:8011 |
 | API docs     | http://localhost:8011/docs |
 | Streamlit UI | http://localhost:8012 (login: `admin` / `admin123`) |
+| Ollama       | http://localhost:11434 (same stack; backend uses `http://ollama:11434` inside the network) |
 
 Data lake: `lakeflow_data` volume (binds to `HOST_LAKE_PATH` from .env). Create zones if needed: `000_inbox`, `100_raw`, …
+
+**Ollama models (first run):** the stack includes an `ollama` container. Pull models once, e.g.  
+`docker exec -it lakeflow-ollama ollama pull qwen3:8b` and `docker exec -it lakeflow-ollama ollama pull qwen3-embedding:8b` (or set `LLM_MODEL` / `EMBED_MODEL` to match what you pull).
 
 **Mac M1 GPU:** Docker runs Linux — no Metal. For GPU, run backend via venv on macOS: `pip install torch` then `pip install -r backend/requirements.txt`.
 
@@ -55,7 +59,7 @@ Copy `env.example` to `.env` and adjust:
 | `QDRANT_HOST` | `lakeflow-qdrant` (Docker) or `localhost` (local) |
 | `API_BASE_URL` | `http://lakeflow-backend:8011` (Docker) or `http://localhost:8011` (local) |
 | `LAKEFLOW_MODE` | `DEV` = show Pipeline Runner; omit = hide (production) |
-| `LLM_BASE_URL` | Ollama/LLM URL for Q&A, Admission agent |
+| `LLM_BASE_URL` | In Docker Compose / Portainer stack, defaults to `http://ollama:11434` (service `ollama`). Override for host Ollama or a proxy. |
 | `EMBED_MODEL` | Default `qwen3-embedding:8b` |
 
 ---

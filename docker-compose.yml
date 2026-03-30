@@ -1,5 +1,17 @@
 services:
   # =========================
+  # Ollama (same Docker network as backend — LLM_BASE_URL=http://ollama:11434)
+  # =========================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: lakeflow-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+
+  # =========================
   # Vector Database
   # =========================
   qdrant:
@@ -20,6 +32,7 @@ services:
     container_name: lakeflow-backend
     depends_on:
       - qdrant
+      - ollama
     ports:
       - "8011:8011"
     # Linux: host.docker.internal not available by default, extra_hosts needed to resolve
@@ -31,6 +44,8 @@ services:
       LAKE_ROOT: /data
       QDRANT_HOST: lakeflow-qdrant
       QDRANT_PORT: "6333"
+      # Overrides .env: reach Ollama by Compose service name (not host.docker.internal)
+      LLM_BASE_URL: http://ollama:11434
     volumes:
       - lakeflow_data:/data
       - ./backend/src:/app/src
@@ -93,6 +108,8 @@ volumes:
       device: "${HOST_LAKE_PATH}"
 
   qdrant_data:
+  ollama_data:
+
 networks:
   neu-net:
     driver: bridge
