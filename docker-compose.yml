@@ -1,3 +1,6 @@
+# Ollama chạy Docker riêng: gắn vào network lakeflow-neu-net (tên cố định bên dưới), ví dụ:
+#   docker network connect lakeflow-neu-net <tên_container_ollama>
+# Nếu hostname trong mạng không phải "ollama", đặt LLM_BASE_URL trong .env (vd http://tên_container:11434).
 services:
   # =========================
   # Vector Database
@@ -10,6 +13,8 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
+    networks:
+      - neu-net
 
   # =========================
   # Backend API + Pipelines
@@ -31,11 +36,15 @@ services:
       LAKE_ROOT: /data
       QDRANT_HOST: lakeflow-qdrant
       QDRANT_PORT: "6333"
+      # Cùng server Docker: Ollama lắng nghe 11434, hostname = tên service/container trên chung network
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://ollama:11434}
     volumes:
       - lakeflow_data:/data
       - ./backend/src:/app/src
     command: uvicorn lakeflow.main:app --host 0.0.0.0 --port 8011 --reload
     restart: unless-stopped
+    networks:
+      - neu-net
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8011/health"]
@@ -79,6 +88,8 @@ services:
       "
 
     restart: unless-stopped
+    networks:
+      - neu-net
 
 
 # =========================
@@ -95,6 +106,7 @@ volumes:
   qdrant_data:
 networks:
   neu-net:
+    name: lakeflow-neu-net
     driver: bridge
     ipam:
       config:
