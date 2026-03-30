@@ -19,21 +19,54 @@ from lakeflow.common.nas_io import (
 from lakeflow.vectorstore.constants import COLLECTION_NAME
 
 
+def _default_vector_size(client: QdrantClient, collection_name: str) -> Optional[int]:
+    """Return configured size for the default (unnamed) vector, or None if missing."""
+    try:
+        info = client.get_collection(collection_name)
+    except Exception:
+        return None
+    params = info.config.params.vectors
+    if hasattr(params, "size"):
+        return int(params.size)
+    if isinstance(params, dict) and params:
+        first = next(iter(params.values()))
+        return int(first.size)
+    return None
+
+
 def ensure_collection(
     client: QdrantClient,
     vector_dim: int,
     collection_name: Optional[str] = None,
 ) -> None:
     """
-    Ensure Qdrant collection exists.
-    If already exists → do nothing.
+    Ensure Qdrant collection exists with vector_dim matching embedding.npy.
+
+    If the collection already exists but was created with a different vector size
+    (e.g. switched from 384-dim to 4096-dim embed model), delete and recreate so
+    upsert does not fail with "expected dim: X, got Y".
     collection_name: collection name; None = use default COLLECTION_NAME.
     """
     name = (collection_name or "").strip() or COLLECTION_NAME
 
     collections = client.get_collections().collections
-    if any(c.name == name for c in collections):
-        return
+    exists = any(c.name == name for c in collections)
+
+    if exists:
+        existing_dim = _default_vector_size(client, name)
+        if existing_dim is not None and existing_dim == vector_dim:
+            return
+        if existing_dim is not None and existing_dim != vector_dim:
+            print(
+                f"[QDRANT] Collection {name!r}: stored vectors are dim={existing_dim}, "
+                f"new embeddings are dim={vector_dim}. Deleting and recreating collection."
+            )
+            client.delete_collection(collection_name=name)
+        else:
+            raise RuntimeError(
+                f"Collection {name!r} already exists but vector size could not be determined; "
+                f"delete it in Qdrant or use another collection name."
+            )
 
     client.create_collection(
         collection_name=name,

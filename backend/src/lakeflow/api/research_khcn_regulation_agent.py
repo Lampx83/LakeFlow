@@ -17,7 +17,7 @@ from lakeflow.services.ollama_embed_service import embed_batch
 from lakeflow.services.llm_chat_service import chat_completion
 from lakeflow.services.qdrant_service import get_client
 
-RESEARCH_KHCN_COLLECTION = "research_regulations_and_policies"
+RESEARCH_KHCN_COLLECTION = "research_regulation"
 
 router = APIRouter(
     prefix="/research_khcn_regulation_agent/v1",

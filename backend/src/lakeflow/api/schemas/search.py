@@ -110,7 +110,7 @@ class QARequest(BaseModel):
         description="Câu hỏi của người dùng"
     )
     top_k: int = Field(
-        default=5,
+        default=10,
         ge=1,
         le=20,
         description="Số lượng context chunks để sử dụng"

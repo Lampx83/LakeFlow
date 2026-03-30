@@ -64,7 +64,7 @@ def render():
             "Context count (Top K)",
             min_value=1,
             max_value=20,
-            value=5,
+            value=10,
             help="Max document passages to send as context to the LLM.",
         )
 

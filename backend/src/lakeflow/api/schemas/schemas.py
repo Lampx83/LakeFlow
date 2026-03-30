@@ -4,7 +4,7 @@ from typing import List, Optional
 
 class SemanticSearchRequest(BaseModel):
     query: str = Field(..., min_length=3)
-    top_k: int = Field(default=5, ge=1, le=20)
+    top_k: int = Field(default=10, ge=1, le=20)
 
 
 class SemanticSearchResult(BaseModel):
