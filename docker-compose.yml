@@ -1,6 +1,10 @@
-# Ollama chạy Docker riêng: gắn vào network lakeflow-neu-net (tên cố định bên dưới), ví dụ:
-#   docker network connect lakeflow-neu-net <tên_container_ollama>
-# Nếu hostname trong mạng không phải "ollama", đặt LLM_BASE_URL trong .env (vd http://tên_container:11434).
+# Ollama container riêng (vd tên container: ollama — xem docker ps):
+#   1) Khởi động stack: docker compose up -d
+#   2) Nối Ollama vào cùng network:  docker network connect lakeflow-neu-net ollama
+#   3) Backend đã mặc định LLM_BASE_URL=http://ollama:11434 → resolve theo tên container.
+# Không muốn nối network: trong .env đặt LLM_BASE_URL=http://host.docker.internal:11434
+# (Ollama đã publish 11434 ra host; backend có extra_hosts host.docker.internal).
+# Lưu ý: không dùng subnet cố định cho neu-net — tránh lỗi "Pool overlaps" khi máy nhiều stack Docker.
 services:
   # =========================
   # Vector Database
@@ -108,6 +112,3 @@ networks:
   neu-net:
     name: lakeflow-neu-net
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.30.0.0/16
