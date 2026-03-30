@@ -140,7 +140,7 @@ def ask(req: AskRequest):
     url = f"{base}/collections/{LIBRARY_DOCUMENT_COLLECTION}/points/search"
     payload = {
         "vector": query_vector,
-        "limit": 8,
+        "limit": 10,
         "with_payload": True,
         "with_vector": False,
     }
