@@ -16,6 +16,7 @@ from lakeflow.api.inbox import router as inbox_router
 from lakeflow.api.admission_agent import router as admission_agent_router
 from lakeflow.api.library_document_agent import router as library_document_agent_router
 from lakeflow.api.library_regulation_agent import router as library_regulation_agent_router
+from lakeflow.api.research_khcn_regulation_agent import router as research_khcn_regulation_agent_router
 
 import os
 from pathlib import Path
@@ -83,6 +84,7 @@ def create_app() -> FastAPI:
     app.include_router(admission_agent_router)
     app.include_router(library_document_agent_router)
     app.include_router(library_regulation_agent_router)
+    app.include_router(research_khcn_regulation_agent_router)
 
     @app.get("/health", tags=["system"])
     def health_check():
