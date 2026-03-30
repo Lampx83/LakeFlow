@@ -1,7 +1,7 @@
 """
 Research KHCN Regulation Agent — quy chế, quy trình Khoa học công nghệ (Phụ lục 1–11).
 API tương thích Research Agent: /metadata, /data, /ask.
-RAG trên collection Qdrant Research_KHCN_QuyChe (ingest từ thư mục Quy chế / Phụ lục).
+RAG trên collection Qdrant research_regulations_and_policies (quy định, chính sách KHCN).
 """
 
 import time
@@ -17,7 +17,7 @@ from lakeflow.services.ollama_embed_service import embed_batch
 from lakeflow.services.llm_chat_service import chat_completion
 from lakeflow.services.qdrant_service import get_client
 
-RESEARCH_KHCN_COLLECTION = "Research_KHCN_QuyChe"
+RESEARCH_KHCN_COLLECTION = "research_regulations_and_policies"
 
 router = APIRouter(
     prefix="/research_khcn_regulation_agent/v1",
