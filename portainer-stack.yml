@@ -11,13 +11,6 @@
 # Do not use: build, container_name, env_file (Portainer typically has no .env).
 
 services:
-  ollama:
-    image: ollama/ollama:latest
-    volumes:
-      - lakeflow_ollama_data:/root/.ollama
-    ports:
-      - "11434:11434"
-
   qdrant:
     image: qdrant/qdrant:v1.16.2
     ports:
@@ -29,14 +22,12 @@ services:
     image: docker.io/${DOCKERHUB_USER:-lampx83}/lakeflow-backend:latest
     depends_on:
       - qdrant
-      - ollama
     ports:
       - "8011:8011"
     environment:
       LAKE_ROOT: /data
       QDRANT_HOST: qdrant
       QDRANT_PORT: "6333"
-      LLM_BASE_URL: http://ollama:11434
     volumes:
       - lakeflow_data:/data
     command: uvicorn lakeflow.main:app --host 0.0.0.0 --port 8011
@@ -62,4 +53,3 @@ services:
 volumes:
   lakeflow_data:
   lakeflow_qdrant_data:
-  lakeflow_ollama_data:

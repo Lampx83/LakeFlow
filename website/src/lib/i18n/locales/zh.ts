@@ -305,7 +305,6 @@ export const zh: Record<string, string> = {
   "docs.config.dockerDefaults2": "QDRANT_HOST=lakeflow-qdrant",
   "docs.config.dockerDefaults3": "QDRANT_PORT=6333",
   "docs.config.dockerDefaults4": "API_BASE_URL=http://lakeflow-backend:8011 (frontend)",
-  "docs.config.dockerDefaults5": "LLM_BASE_URL=http://ollama:11434（backend → 同 Compose 中的 Ollama 服务）",
   "docs.config.volumeNote": "卷 lakeflow_data 使用 device: $HOST_LAKE_PATH — 来自 .env。",
   "docs.config.createZonesTitle": "创建区域",
   "docs.config.createZonesIntro": "若区域不存在，在 Data Lake 目录中创建：",

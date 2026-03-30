@@ -1,6 +1,5 @@
 # Override for deploy to server (run with docker-compose.yml)
 # Example: docker compose -f docker-compose.yml -f docker-compose.deploy.yml up -d --build
-# Base compose includes Ollama; backend uses LLM_BASE_URL=http://ollama:11434.
 #
 # Data lake path (no sudo):
 #   Default: LAKEFLOW_DATA_PATH=$REPO_DIR/data (set in deploy workflow)

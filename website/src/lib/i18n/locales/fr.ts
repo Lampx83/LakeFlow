@@ -279,7 +279,6 @@ export const fr: Record<string, string> = {
   "docs.config.dockerDefaults2": "QDRANT_HOST=lakeflow-qdrant",
   "docs.config.dockerDefaults3": "QDRANT_PORT=6333",
   "docs.config.dockerDefaults4": "API_BASE_URL=http://lakeflow-backend:8011 (frontend)",
-  "docs.config.dockerDefaults5": "LLM_BASE_URL=http://ollama:11434 (backend → service Ollama dans la même stack)",
   "docs.config.volumeNote": "Volume lakeflow_data utilise device : $HOST_LAKE_PATH — depuis .env.",
   "docs.config.createZonesTitle": "Créer les zones",
   "docs.config.createZonesIntro": "Si les zones n'existent pas, les créer dans le répertoire Data Lake :",

@@ -106,7 +106,6 @@ export default function ConfigurationPage() {
         <li><code>{t("docs.config.dockerDefaults2")}</code></li>
         <li><code>{t("docs.config.dockerDefaults3")}</code></li>
         <li><code>{t("docs.config.dockerDefaults4")}</code></li>
-        <li><code>{t("docs.config.dockerDefaults5")}</code></li>
       </ul>
       <p>{t("docs.config.volumeNote")}</p>
 
@@ -124,20 +123,16 @@ mkdir -p $DATA_DIR/000_inbox $DATA_DIR/100_raw $DATA_DIR/200_staging \\
 
       <h2>{t("docs.config.exampleEnvTitle")}</h2>
       <pre className="code-block mt-2 overflow-x-auto rounded-lg border border-white/10 bg-white/5 px-4 py-3 font-mono text-sm text-brand-400">
-{`# Docker dev (Ollama in same compose: LLM_BASE_URL set in docker-compose for backend)
+{`# Docker dev (Ollama on host Mac/Win: use host.docker.internal)
 HOST_LAKE_PATH=/Users/you/lakeflow_data
 LAKE_ROOT=/data
 QDRANT_HOST=lakeflow-qdrant
 API_BASE_URL=http://lakeflow-backend:8011
 LAKEFLOW_MODE=DEV
-# Optional in .env — compose overrides with http://ollama:11434
-LLM_BASE_URL=http://ollama:11434
+LLM_BASE_URL=http://host.docker.internal:11434
 EMBED_MODEL=qwen3-embedding:8b
 
-# Docker dev (Ollama only on host Mac/Win)
-# LLM_BASE_URL=http://host.docker.internal:11434
-
-# Local dev (backend + Ollama on host, no compose for backend)
+# Local dev
 LAKE_ROOT=/Users/you/lakeflow_data
 QDRANT_HOST=localhost
 API_BASE_URL=http://localhost:8011
