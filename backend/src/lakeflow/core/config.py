@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 
@@ -68,6 +69,35 @@ _openai_base = (os.getenv("OPENAI_BASE_URL") or "").strip()
 LLM_BASE_URL = _llm_base or _openai_base
 LLM_MODEL = (os.getenv("LLM_MODEL") or os.getenv("OPENAI_MODEL") or "qwen3:8b").strip()
 OPENAI_API_KEY = (os.getenv("OPENAI_API_KEY") or "").strip()
+
+
+def _json_env(name: str) -> dict:
+    """Parse a JSON-object env var; empty/invalid → {}."""
+    raw = (os.getenv(name) or "").strip()
+    if not raw:
+        return {}
+    try:
+        value = json.loads(raw)
+    except ValueError:
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+# Extra HTTP headers for the chat endpoint, e.g. {"x-ollama-seckey": "..."} (gateway auth).
+LLM_EXTRA_HEADERS = _json_env("LLM_EXTRA_HEADERS")
+# Extra JSON body fields merged into chat requests, e.g. {"chat_template_kwargs": {"enable_thinking": false}}.
+LLM_EXTRA_BODY = _json_env("LLM_EXTRA_BODY")
+# Extra HTTP headers for the embed endpoint (may use a different key than chat).
+EMBED_EXTRA_HEADERS = _json_env("EMBED_EXTRA_HEADERS")
+
+
+def llm_headers() -> dict:
+    """Headers for chat requests: JSON, optional Bearer key, plus LLM_EXTRA_HEADERS."""
+    headers = {"Content-Type": "application/json"}
+    if OPENAI_API_KEY:
+        headers["Authorization"] = f"Bearer {OPENAI_API_KEY}"
+    headers.update(LLM_EXTRA_HEADERS)
+    return headers
 
 
 def get_qdrant_url(override: str | None = None) -> str:
