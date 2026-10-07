@@ -15,9 +15,10 @@ from lakeflow.services.ollama_embed_service import embed_batch
 from lakeflow.core.auth import verify_token
 from lakeflow.catalog.app_db import insert_message
 from lakeflow.vectorstore.constants import COLLECTION_NAME as DEFAULT_COLLECTION_NAME
-from lakeflow.core.config import get_qdrant_url, LLM_BASE_URL, LLM_MODEL, OPENAI_API_KEY
+from lakeflow.core.config import get_qdrant_url, LLM_BASE_URL, LLM_MODEL, LLM_EXTRA_BODY, llm_headers
 
 import os
+import sqlite3
 from lakeflow.catalog.db import get_connection
 from lakeflow.config.paths import catalog_db_path
 
@@ -133,7 +134,11 @@ def _resolve_filenames_by_hash(file_hashes: list[str]) -> dict[str, str]:
               AND source_path IS NOT NULL
             ORDER BY id DESC
         """
-        rows = conn.execute(sql, hashes).fetchall()
+        try:
+            rows = conn.execute(sql, hashes).fetchall()
+        except sqlite3.OperationalError:
+            # Catalog chưa có bảng ingest_log (chưa chạy pipeline): nguồn chỉ là thông tin phụ.
+            return {}
 
         mapping = {}
         for file_hash, source_path in rows:
@@ -292,16 +297,14 @@ def qa(req: QARequest, auth_payload: dict = Depends(verify_token)):
         ],
         "temperature": req.temperature,
         "max_tokens": 1000,
+        **LLM_EXTRA_BODY,
     }
-    headers = {"Content-Type": "application/json"}
-    if OPENAI_API_KEY:
-        headers["Authorization"] = f"Bearer {OPENAI_API_KEY}"
 
     try:
         llm_resp = requests.post(
             chat_url,
             json=llm_payload,
-            headers=headers,
+            headers=llm_headers(),
             timeout=60,
         )
         llm_resp.raise_for_status()
