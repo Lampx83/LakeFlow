@@ -5,11 +5,12 @@ Uses Qwen3 8b, data from collection "Library_QDHD" in Qdrant (Word: quy định,
 
 import time
 import requests
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from lakeflow.i18n import i18n_detail
 from pydantic import BaseModel, Field
 
+from lakeflow.core.auth import verify_token
 from lakeflow.common.text_normalizer import canonicalize_text
 from lakeflow.core.config import get_qdrant_url, LLM_MODEL
 from lakeflow.services.ollama_embed_service import embed_batch
@@ -102,7 +103,7 @@ def _collect_sources_from_collection(collection: str, limit: int = 500) -> list[
 
 
 @router.get("/data")
-def get_data(limit: int = Query(100, ge=1, le=500)):
+def get_data(limit: int = Query(100, ge=1, le=500), _user: dict = Depends(verify_token)):
     """
     Danh sách nguồn dữ liệu từ bộ sưu tập Library_QDHD.
     """
@@ -123,7 +124,7 @@ def get_data(limit: int = Query(100, ge=1, le=500)):
 
 
 @router.post("/ask")
-def ask(req: AskRequest):
+def ask(req: AskRequest, _user: dict = Depends(verify_token)):
     """
     RAG: Lấy đoạn tài liệu liên quan từ bộ sưu tập Library_QDHD, gọi LLM trả lời.
     """

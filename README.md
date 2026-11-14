@@ -57,6 +57,10 @@ Copy `env.example` to `.env` and adjust:
 | `LAKEFLOW_MODE` | `DEV` = show Pipeline Runner; omit = hide (production) |
 | `LLM_BASE_URL` | Ollama/LLM URL for Q&A, Admission agent |
 | `EMBED_MODEL` | Default `qwen3-embedding:8b` |
+| `JWT_SECRET_KEY` | JWT signing key (unset = random per process) |
+| `LAKEFLOW_ADMIN_PASSWORD_HASH` | bcrypt hash of the admin password (unset = demo password) |
+| `CORS_ALLOW_ORIGINS` | Comma-separated allowed origins (default `*`) |
+| `QDRANT_ALLOWED_URLS` | Optional allowlist for client-supplied `qdrant_url` |
 
 ---
 
@@ -92,8 +96,8 @@ Qdrant: `docker compose up -d qdrant`. Frontend: `streamlit run frontend/streaml
 ## API overview
 
 - `GET /health` — Health check
-- `POST /auth/login` — Demo auth (`admin` / `admin123`)
-- `POST /search/embed` — `{"text":"..."}` → vector
+- `POST /auth/login` — Returns a JWT. Demo account `admin` / `admin123` for dev only; set `LAKEFLOW_ADMIN_PASSWORD_HASH` and `JWT_SECRET_KEY` in `.env` for real deployments
+- `POST /search/embed` — `{"text":"..."}` → vector (Bearer token required)
 - `POST /search/semantic` — `{"query":"...", "top_k":5}`
 
 See [backend/docs/API_EMBED.md](backend/docs/API_EMBED.md) and [lake-flow.vercel.app/docs](https://lake-flow.vercel.app/docs).

@@ -6,11 +6,12 @@ RAG trên collection Qdrant research_regulations_and_policies (quy định, chí
 
 import time
 import requests
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from lakeflow.i18n import i18n_detail
 from pydantic import BaseModel, Field
 
+from lakeflow.core.auth import verify_token
 from lakeflow.common.text_normalizer import canonicalize_text
 from lakeflow.core.config import get_qdrant_url, LLM_MODEL
 from lakeflow.services.ollama_embed_service import embed_batch
@@ -128,7 +129,7 @@ def _collect_sources_from_collection(collection: str, limit: int = 500) -> list[
 
 
 @router.get("/data")
-def get_data(limit: int = Query(100, ge=1, le=500)):
+def get_data(limit: int = Query(100, ge=1, le=500), _user: dict = Depends(verify_token)):
     try:
         client = get_client(None)
         client.get_collection(RESEARCH_KHCN_COLLECTION)
@@ -146,7 +147,7 @@ def get_data(limit: int = Query(100, ge=1, le=500)):
 
 
 @router.post("/ask")
-def ask(req: AskRequest):
+def ask(req: AskRequest, _user: dict = Depends(verify_token)):
     prompt = req.prompt.strip()
     if not prompt:
         raise HTTPException(status_code=400, detail=i18n_detail("khcn_regulation.prompt_empty"))

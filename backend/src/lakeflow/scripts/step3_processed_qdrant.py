@@ -167,7 +167,11 @@ def main():
     print(f"Skipped  : {skipped}")
     print(f"Failed   : {failed}")
     print("=================================")
+    return failed
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    # Non-zero exit when any item failed, so the pipeline API / inbox auto-run can see it.
+    sys.exit(1 if main() else 0)

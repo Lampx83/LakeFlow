@@ -34,7 +34,7 @@ router = APIRouter(
     summary="Vector hóa chuỗi",
     description="Trả về vector embedding của một chuỗi (dùng cùng model với semantic search).",
 )
-def embed_text(req: EmbedRequest) -> dict:
+def embed_text(req: EmbedRequest, _user: dict = Depends(verify_token)) -> dict:
     vector = embed_batch([req.text])[0]
     return {
         "text": req.text,
@@ -48,7 +48,7 @@ def embed_text(req: EmbedRequest) -> dict:
     "/semantic",
     response_model=SemanticSearchResponse,
 )
-def semantic_search(req: SemanticSearchRequest):
+def semantic_search(req: SemanticSearchRequest, _user: dict = Depends(verify_token)):
     """
     Semantic search dùng Qdrant REST API (requests)
     """
