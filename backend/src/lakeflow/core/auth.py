@@ -4,7 +4,7 @@ from lakeflow.i18n import i18n_detail
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 
-from lakeflow.core.config import JWT_SECRET_KEY, JWT_ALGORITHM
+from lakeflow.core.config import JWT_SECRET_KEY, JWT_ALGORITHM, ADMIN_USERNAME
 
 
 oauth2_scheme = OAuth2PasswordBearer(
@@ -40,4 +40,14 @@ def verify_token(token: str = Depends(oauth2_scheme)) -> dict:
             detail=i18n_detail("auth.token_payload_invalid"),
         )
 
+    return payload
+
+
+def require_admin(payload: dict = Depends(verify_token)) -> dict:
+    """Dependency: valid token AND the admin account. Raises 403 otherwise."""
+    if payload.get("sub") != ADMIN_USERNAME:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=i18n_detail("admin.admin_only"),
+        )
     return payload

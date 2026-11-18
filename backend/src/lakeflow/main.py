@@ -1,8 +1,11 @@
 import lakeflow.config.env  # noqa: F401, E402 — trigger load_dotenv
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
+from lakeflow.core.auth import verify_token
+from lakeflow.core.config import CORS_ALLOW_ORIGINS, QdrantUrlNotAllowedError
 from lakeflow.i18n import http_exception_handler
 
 # Routers
@@ -34,15 +37,21 @@ def create_app() -> FastAPI:
         description="Backend AI & Data Services for LakeFlow",
     )
 
+    # Auth uses Authorization headers (no cookies), so credentials are only needed for an explicit origin list.
+    # Set CORS_ALLOW_ORIGINS="https://a.example,https://b.example" in production.
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # restrict domains later
-        allow_credentials=True,
+        allow_origins=CORS_ALLOW_ORIGINS,
+        allow_credentials="*" not in CORS_ALLOW_ORIGINS,
         allow_methods=["*"],
         allow_headers=["*"],
     )
 
     app.add_exception_handler(HTTPException, http_exception_handler)
+
+    @app.exception_handler(QdrantUrlNotAllowedError)
+    async def _qdrant_url_not_allowed(_request: Request, exc: QdrantUrlNotAllowedError):
+        return JSONResponse(status_code=400, content={"detail": str(exc)})
 
     base_str = os.getenv("LAKE_ROOT", "/data")
     base = Path(base_str).expanduser().resolve()
@@ -59,6 +68,7 @@ def create_app() -> FastAPI:
         pipeline_router,
         prefix="/pipeline",
         tags=["pipeline"],
+        dependencies=[Depends(verify_token)],
     )
 
     app.include_router(
@@ -79,6 +89,7 @@ def create_app() -> FastAPI:
         inbox_router,
         prefix="/inbox",
         tags=["inbox"],
+        dependencies=[Depends(verify_token)],
     )
 
     app.include_router(admission_agent_router)

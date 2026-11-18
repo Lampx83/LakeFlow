@@ -7,12 +7,10 @@ Inbox API: upload files into 000_inbox and list by domain.
 - GET /inbox/list?domain=...: list files in a domain folder
 """
 
-import json
 import logging
 import os
 import re
 import threading
-import urllib.request
 from pathlib import Path
 from typing import Optional
 
@@ -100,35 +98,27 @@ async def upload_to_inbox(
 
 def _trigger_pipeline_for_domain(domain: str, qdrant_url: Optional[str] = None) -> None:
     """Run pipeline (step0→step4) for domain in background; step4 uses collection_name = domain, may write to qdrant_url."""
-    base_url = os.getenv("LAKEFLOW_PIPELINE_BASE_URL", "http://127.0.0.1:8011").rstrip("/")
+    from lakeflow.api.pipeline import RunStepBody, run_pipeline_step
 
     def _run() -> None:
-        steps = ["step0", "step1", "step2", "step3", "step4"]
-        for step in steps:
-            body = {"only_folders": [domain]}
+        for step in ["step0", "step1", "step2", "step3", "step4"]:
+            body = RunStepBody(only_folders=[domain])
             if step == "step4":
-                body["collection_name"] = domain
+                body.collection_name = domain
                 if qdrant_url:
-                    body["qdrant_url"] = qdrant_url
-            data = json.dumps(body).encode("utf-8")
-            req = urllib.request.Request(
-                f"{base_url}/pipeline/run/{step}",
-                data=data,
-                headers={"Content-Type": "application/json"},
-                method="POST",
-            )
+                    body.qdrant_url = qdrant_url
             try:
-                with urllib.request.urlopen(req, timeout=3600) as resp:
-                    result = json.loads(resp.read().decode())
-                    rc = result.get("returncode", -1)
-                    if rc != 0:
-                        logger.warning(
-                            "[inbox] Pipeline %s for domain %s returncode=%s stderr=%s",
-                            step, domain, rc, result.get("stderr", "")[:500],
-                        )
+                result = run_pipeline_step(step, body)
             except Exception as e:
                 logger.exception("[inbox] Pipeline %s for domain %s failed: %s", step, domain, e)
                 return
+            rc = result.get("returncode", -1)
+            if rc != 0:
+                logger.error(
+                    "[inbox] Pipeline %s for domain %s returncode=%s stderr=%s",
+                    step, domain, rc, (result.get("stderr") or "")[:500],
+                )
+                # keep going: steps are idempotent and later ones still process the files that succeeded
 
     threading.Thread(target=_run, daemon=True).start()
 

@@ -6,9 +6,10 @@ Su dung Qwen3 8b, du lieu tu collection "Admission" trong Qdrant.
 import sqlite3
 import time
 import requests
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from lakeflow.core.auth import verify_token
 from lakeflow.common.text_normalizer import canonicalize_text
 from lakeflow.services.ollama_embed_service import embed_batch
 from lakeflow.core.config import get_qdrant_url, LLM_BASE_URL, LLM_MODEL, LLM_EXTRA_BODY, llm_headers
@@ -116,7 +117,7 @@ def _collect_sources_from_collection(collection: str, limit: int = 500) -> list[
 
 
 @router.get("/data")
-def get_data(limit: int = Query(100, ge=1, le=500)):
+def get_data(limit: int = Query(100, ge=1, le=500), _user: dict = Depends(verify_token)):
     """
     Danh sach nguon du lieu tu collection Admission.
     """
@@ -209,7 +210,7 @@ def _build_sources_from_contexts(contexts: list[dict]) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 @router.post("/ask")
-def ask(req: AskRequest):
+def ask(req: AskRequest, _user: dict = Depends(verify_token)):
     """
     RAG: Tim context tu semantic search tren collection Admission, goi LLM tra loi.
     """

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 
 from lakeflow.i18n import i18n_detail
 import subprocess
@@ -9,6 +9,8 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from lakeflow.core.auth import require_admin
+from lakeflow.core.config import get_qdrant_url, QdrantUrlNotAllowedError
 from lakeflow.services.ollama_embed_service import EMBED_MODEL
 
 router = APIRouter()
@@ -120,7 +122,16 @@ def list_folders(step: str) -> dict:
 
 
 @router.post("/run/{step}")
-def run_step(step: str, body: Optional[RunStepBody] = Body(default=None)):
+def run_step(
+    step: str,
+    body: Optional[RunStepBody] = Body(default=None),
+    _admin: dict = Depends(require_admin),
+):
+    return run_pipeline_step(step, body)
+
+
+def run_pipeline_step(step: str, body: Optional[RunStepBody] = None) -> dict:
+    """Run one pipeline step as a subprocess. Shared by the HTTP route and the inbox auto-run."""
     if step not in ALLOWED:
         raise HTTPException(status_code=400, detail=i18n_detail("pipeline.invalid_step"))
 
@@ -142,16 +153,16 @@ def run_step(step: str, body: Optional[RunStepBody] = Body(default=None)):
     if body and body.embed_model and body.embed_model.strip() and step == "step3":
         env["PIPELINE_EMBED_MODEL"] = body.embed_model.strip()
     if body and body.qdrant_url and body.qdrant_url.strip() and step == "step4":
-        # Pass Qdrant service to step3_processed_qdrant script (host:port or URL)
-        u = body.qdrant_url.strip()
-        if u.startswith("http://"):
-            u = u[7:]
-        elif u.startswith("https://"):
-            u = u[8:]
+        # Pass Qdrant service to step3_processed_qdrant script (host:port); honours QDRANT_ALLOWED_URLS
+        try:
+            u = get_qdrant_url(body.qdrant_url)
+        except QdrantUrlNotAllowedError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        u = u.split("://", 1)[1]
         if ":" in u:
             host, port = u.split(":", 1)
             env["QDRANT_HOST"] = host.strip()
-            env["QDRANT_PORT"] = port.strip()
+            env["QDRANT_PORT"] = port.strip("/ ")
         else:
             env["QDRANT_HOST"] = u
             env["QDRANT_PORT"] = "6333"
