@@ -35,7 +35,7 @@ def render():
         password = st.text_input(
             "Password",
             type="password",
-            value="admin123" if LAKEFLOW_MODE == "DEV" else "",
+            value="",
         )
         remember = st.checkbox("🔒 Remember login")
         submitted = st.form_submit_button("Login")

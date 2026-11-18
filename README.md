@@ -36,7 +36,7 @@ DOCKER_BUILDKIT=1 docker compose up --build
 |--------------|-----|
 | Backend API  | http://localhost:8011 |
 | API docs     | http://localhost:8011/docs |
-| Streamlit UI | http://localhost:8012 (login: `admin` / `admin123`) |
+| Streamlit UI | http://localhost:8012 (login: `LAKEFLOW_ADMIN_USER` / `LAKEFLOW_ADMIN_PASSWORD` from `.env`) |
 
 Data lake: `lakeflow_data` volume (binds to `HOST_LAKE_PATH` from .env). Create zones if needed: `000_inbox`, `100_raw`, …
 
@@ -96,7 +96,7 @@ Qdrant: `docker compose up -d qdrant`. Frontend: `streamlit run frontend/streaml
 ## API overview
 
 - `GET /health` — Health check
-- `POST /auth/login` — Returns a JWT. Demo account `admin` / `admin123` for dev only; set `LAKEFLOW_ADMIN_PASSWORD_HASH` and `JWT_SECRET_KEY` in `.env` for real deployments
+- `POST /auth/login` — Returns a JWT. There is no default account: set `LAKEFLOW_ADMIN_PASSWORD_HASH` (or `LAKEFLOW_ADMIN_PASSWORD`) and `JWT_SECRET_KEY` in `.env`, otherwise login is disabled
 - `POST /search/embed` — `{"text":"..."}` → vector (Bearer token required)
 - `POST /search/semantic` — `{"query":"...", "top_k":5}`
 
