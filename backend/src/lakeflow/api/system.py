@@ -12,9 +12,10 @@ from pathlib import Path
 import os
 
 import requests
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from lakeflow.core.auth import verify_token, require_admin
 from lakeflow.i18n import i18n_detail, SUPPORTED_LOCALES, DEFAULT_LOCALE
 
 from lakeflow.runtime.config import runtime_config
@@ -113,7 +114,7 @@ def get_data_path():
 
 
 @router.post("/data-path")
-def set_data_path(req: DataPathRequest):
+def set_data_path(req: DataPathRequest, _admin: dict = Depends(require_admin)):
     """
     Set Data Lake path for entire system.
 
@@ -135,7 +136,7 @@ def set_data_path(req: DataPathRequest):
 
 
 @router.get("/health-detail")
-def get_health_detail():
+def get_health_detail(_user: dict = Depends(verify_token)):
     """
     Health check for backend + Qdrant connectivity.
     """
@@ -162,7 +163,7 @@ def get_health_detail():
 
 
 @router.get("/config")
-def get_config():
+def get_config(_user: dict = Depends(verify_token)):
     """
     Get safe runtime config (no secrets). For System Settings UI.
     """
@@ -202,7 +203,7 @@ def _count_files_in_zone(path: Path, extensions: set | None = None) -> int:
 
 
 @router.get("/zones-status")
-def get_zones_status():
+def get_zones_status(_user: dict = Depends(verify_token)):
     """
     Status of each Data Lake zone: exists, file count.
     """
@@ -239,7 +240,7 @@ def get_zones_status():
 
 
 @router.post("/create-zones")
-def create_zones():
+def create_zones(_admin: dict = Depends(require_admin)):
     """
     Create missing zone directories in current Data Lake path.
     Idempotent: skips zones that already exist.

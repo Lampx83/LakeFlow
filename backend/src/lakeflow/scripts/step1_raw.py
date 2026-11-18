@@ -138,10 +138,14 @@ def main():
     print(f"Total skipped   : {skipped}")
     print(f"Total failed    : {failed}")
     print("="*35)
+    return failed
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    # Non-zero exit when any item failed, so the pipeline API / inbox auto-run can see it.
+    sys.exit(1 if main() else 0)
 
     
 # lampx===================================================

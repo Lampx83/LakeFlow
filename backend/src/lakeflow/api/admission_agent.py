@@ -3,14 +3,16 @@ Tro ly (Agent) Admission - API tuong thich Research Agent: /metadata, /data, /as
 Su dung Qwen3 8b, du lieu tu collection "Admission" trong Qdrant.
 """
 
+import sqlite3
 import time
 import requests
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from lakeflow.core.auth import verify_token
 from lakeflow.common.text_normalizer import canonicalize_text
 from lakeflow.services.ollama_embed_service import embed_batch
-from lakeflow.core.config import get_qdrant_url, LLM_BASE_URL, LLM_MODEL, OPENAI_API_KEY
+from lakeflow.core.config import get_qdrant_url, LLM_BASE_URL, LLM_MODEL, LLM_EXTRA_BODY, llm_headers
 from lakeflow.services.qdrant_service import get_client
 
 
@@ -115,7 +117,7 @@ def _collect_sources_from_collection(collection: str, limit: int = 500) -> list[
 
 
 @router.get("/data")
-def get_data(limit: int = Query(100, ge=1, le=500)):
+def get_data(limit: int = Query(100, ge=1, le=500), _user: dict = Depends(verify_token)):
     """
     Danh sach nguon du lieu tu collection Admission.
     """
@@ -152,7 +154,11 @@ def _resolve_filenames_by_hash(file_hashes: list[str]) -> dict[str, str]:
               AND source_path IS NOT NULL
             ORDER BY id DESC
         """
-        rows = conn.execute(sql, hashes).fetchall()
+        try:
+            rows = conn.execute(sql, hashes).fetchall()
+        except sqlite3.OperationalError:
+            # Catalog chưa có bảng ingest_log (chưa chạy pipeline): nguồn chỉ là thông tin phụ.
+            return {}
 
         mapping = {}
         for file_hash, source_path in rows:
@@ -204,7 +210,7 @@ def _build_sources_from_contexts(contexts: list[dict]) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 @router.post("/ask")
-def ask(req: AskRequest):
+def ask(req: AskRequest, _user: dict = Depends(verify_token)):
     """
     RAG: Tim context tu semantic search tren collection Admission, goi LLM tra loi.
     """
@@ -303,14 +309,12 @@ def ask(req: AskRequest):
         ],
         "temperature": 0.3,
         "max_tokens": 1000,
+        **LLM_EXTRA_BODY,
     }
-    headers = {"Content-Type": "application/json"}
-    if OPENAI_API_KEY:
-        headers["Authorization"] = f"Bearer {OPENAI_API_KEY}"
 
     t0 = time.time()
     try:
-        llm_resp = requests.post(chat_url, json=llm_payload, headers=headers, timeout=60)
+        llm_resp = requests.post(chat_url, json=llm_payload, headers=llm_headers(), timeout=60)
         llm_resp.raise_for_status()
         llm_data = llm_resp.json()
         answer = llm_data["choices"][0]["message"]["content"]

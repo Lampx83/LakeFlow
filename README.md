@@ -36,7 +36,7 @@ DOCKER_BUILDKIT=1 docker compose up --build
 |--------------|-----|
 | Backend API  | http://localhost:8011 |
 | API docs     | http://localhost:8011/docs |
-| Streamlit UI | http://localhost:8012 (login: `admin` / `admin123`) |
+| Streamlit UI | http://localhost:8012 (login: `LAKEFLOW_ADMIN_USER` / `LAKEFLOW_ADMIN_PASSWORD` from `.env`) |
 
 Data lake: `lakeflow_data` volume (binds to `HOST_LAKE_PATH` from .env). Create zones if needed: `000_inbox`, `100_raw`, …
 
@@ -57,6 +57,10 @@ Copy `env.example` to `.env` and adjust:
 | `LAKEFLOW_MODE` | `DEV` = show Pipeline Runner; omit = hide (production) |
 | `LLM_BASE_URL` | Ollama/LLM URL for Q&A, Admission agent |
 | `EMBED_MODEL` | Default `qwen3-embedding:8b` |
+| `JWT_SECRET_KEY` | JWT signing key (unset = random per process) |
+| `LAKEFLOW_ADMIN_PASSWORD_HASH` | bcrypt hash of the admin password (unset = demo password) |
+| `CORS_ALLOW_ORIGINS` | Comma-separated allowed origins (default `*`) |
+| `QDRANT_ALLOWED_URLS` | Optional allowlist for client-supplied `qdrant_url` |
 
 ---
 
@@ -92,8 +96,8 @@ Qdrant: `docker compose up -d qdrant`. Frontend: `streamlit run frontend/streaml
 ## API overview
 
 - `GET /health` — Health check
-- `POST /auth/login` — Demo auth (`admin` / `admin123`)
-- `POST /search/embed` — `{"text":"..."}` → vector
+- `POST /auth/login` — Returns a JWT. There is no default account: set `LAKEFLOW_ADMIN_PASSWORD_HASH` (or `LAKEFLOW_ADMIN_PASSWORD`) and `JWT_SECRET_KEY` in `.env`, otherwise login is disabled
+- `POST /search/embed` — `{"text":"..."}` → vector (Bearer token required)
 - `POST /search/semantic` — `{"query":"...", "top_k":5}`
 
 See [backend/docs/API_EMBED.md](backend/docs/API_EMBED.md) and [lake-flow.vercel.app/docs](https://lake-flow.vercel.app/docs).

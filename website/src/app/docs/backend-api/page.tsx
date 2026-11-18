@@ -87,7 +87,7 @@ TOKEN=$(curl -s -X POST "http://localhost:8011/auth/login" \\
       </pre>
       <h3>GET /auth/me</h3>
       <p>Requires header <code>Authorization: Bearer &lt;token&gt;</code>. Returns <code>{"{ username: string }"}</code>.</p>
-      <p className="mt-2"><strong>Endpoints requiring Bearer token:</strong> <code>POST /search/qa</code>, <code>GET /admin/users</code>, <code>DELETE /admin/users/&#123;username&#125;/messages</code>, <code>GET /admission_agent/v1/metadata</code>, <code>POST /admission_agent/v1/ask</code>, <code>GET /admission_agent/v1/data</code>.</p>
+      <p className="mt-2"><strong>Endpoints requiring Bearer token:</strong> everything except <code>GET /health</code>, <code>GET /system/locales</code>, <code>GET /system/data-path</code>, <code>POST /auth/login</code> and each agent's <code>/metadata</code>. In particular <code>/pipeline/*</code>, <code>/inbox/*</code>, <code>/search/*</code>, <code>/system/*</code>, <code>/qdrant/*</code>. Admin-only (admin account): <code>POST /pipeline/run/&#123;step&#125;</code>, <code>POST /system/data-path</code>, <code>POST /system/create-zones</code>, <code>/admin/*</code>. Examples: <code>POST /search/qa</code>, <code>GET /admin/users</code>, <code>DELETE /admin/users/&#123;username&#125;/messages</code>, <code>GET /admission_agent/v1/metadata</code>, <code>POST /admission_agent/v1/ask</code>, <code>GET /admission_agent/v1/data</code>.</p>
       <pre className="code-block mt-2 overflow-x-auto rounded-lg border border-white/10 bg-white/5 px-4 py-3 font-mono text-sm text-brand-400">
 {`curl -X POST "http://localhost:8011/search/qa" \\
   -H "Content-Type: application/json" \\
@@ -222,11 +222,13 @@ curl -X POST "http://localhost:8011/pipeline/run/step3" -H "Content-Type: applic
       <pre className="code-block mt-2 overflow-x-auto rounded-lg border border-white/10 bg-white/5 px-4 py-3 font-mono text-sm text-brand-400">
 {`# Upload a single file
 curl -X POST "http://localhost:8011/inbox/upload" \\
+  -H "Authorization: Bearer $TOKEN" \\
   -F "domain=regulations" \\
   -F "files=@document.pdf"
 
 # Upload multiple files to subpath
 curl -X POST "http://localhost:8011/inbox/upload" \\
+  -H "Authorization: Bearer $TOKEN" \\
   -F "domain=syllabus" \\
   -F "path=2024/course_a" \\
   -F "files=@doc1.pdf" -F "files=@doc2.docx"`}
@@ -312,6 +314,7 @@ print(qa.json()["answer"])
 # 3. Upload + auto pipeline
 with open("doc.pdf", "rb") as f:
     r = requests.post(f"{BASE}/inbox/upload",
+        headers=headers,
         data={"domain": "regulations"},
         files={"files": ("doc.pdf", f, "application/pdf")}
     )

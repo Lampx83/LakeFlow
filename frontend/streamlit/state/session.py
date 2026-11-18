@@ -11,7 +11,8 @@ def init_session():
     if LAKEFLOW_MODE == "DEV" and not st.session_state.get("token"):
         try:
             from services.api_client import login as api_login
-            token = api_login("admin", "admin123")
+            import os
+            token = api_login(os.getenv("LAKEFLOW_ADMIN_USER", "admin"), os.getenv("LAKEFLOW_ADMIN_PASSWORD", ""))
             if token:
                 st.session_state.token = token
         except Exception:

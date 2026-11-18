@@ -28,6 +28,25 @@ jobs:
         run: ruff check backend/src frontend/streamlit
         continue-on-error: true  # CI still passes while lint errors remain; remove when all fixed
 
+  test-backend:
+    name: Test (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install test dependencies
+        run: |
+          pip install pytest httpx "fastapi>=0.110" python-multipart "qdrant-client==1.16.2" \
+            "passlib[bcrypt]>=1.7.4,<1.8" "bcrypt<4.0" "python-jose>=3.3.0" requests python-dotenv "numpy<2"
+
+      - name: Run tests
+        run: cd backend && python -m pytest -q
+
   build-backend:
     name: Build Backend Docker
     runs-on: ubuntu-latest

@@ -6,7 +6,7 @@ import os
 import requests
 from typing import List, Dict, Any
 
-from lakeflow.core.config import LLM_BASE_URL, LLM_MODEL, OPENAI_API_KEY
+from lakeflow.core.config import LLM_BASE_URL, LLM_MODEL, LLM_EXTRA_BODY, llm_headers
 
 USE_OLLAMA_NATIVE_CHAT = os.getenv("USE_OLLAMA_NATIVE_CHAT", "").lower() in ("1", "true", "yes")
 
@@ -21,9 +21,7 @@ def chat_completion(
     Call LLM chat. Returns (answer, model_used).
     Supports OpenAI-compatible and native Ollama (/api/chat).
     """
-    headers = {"Content-Type": "application/json"}
-    if OPENAI_API_KEY:
-        headers["Authorization"] = f"Bearer {OPENAI_API_KEY}"
+    headers = llm_headers()
 
     base = LLM_BASE_URL.rstrip("/")
 
@@ -47,6 +45,7 @@ def chat_completion(
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
+            **LLM_EXTRA_BODY,
         }
 
     resp = requests.post(url, json=payload, headers=headers, timeout=60)

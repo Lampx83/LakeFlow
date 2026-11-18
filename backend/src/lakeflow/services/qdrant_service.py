@@ -20,9 +20,8 @@ _client: Optional[QdrantClient] = None
 def get_client(qdrant_url: Optional[str] = None) -> QdrantClient:
     """Qdrant client. If qdrant_url provided, use it (no cache); else use default from env."""
     global _client
-    if qdrant_url and (s := qdrant_url.strip()):
-        url = s if s.startswith("http://") or s.startswith("https://") else f"http://{s}"
-        return QdrantClient(url=url, api_key=QDRANT_API_KEY)
+    if qdrant_url and qdrant_url.strip():
+        return QdrantClient(url=get_qdrant_url(qdrant_url), api_key=QDRANT_API_KEY)
     if _client is None:
         _client = QdrantClient(
             url=get_qdrant_url(None),

@@ -1,7 +1,7 @@
 # Deploy to Ubuntu server on every push to main
 # Required secrets: DEPLOY_HOST, DEPLOY_USER, SSH_PRIVATE_KEY
 # Optional: DEPLOY_SSH_PORT, DEPLOY_REPO_DIR, OPENAI_API_KEY (written to .env on server when deploying)
-# On server: .env must have (API_BASE_URL, QDRANT_HOST, ...). OPENAI_API_KEY from GitHub Secret is written to .env if set.
+# On server: .env must have (API_BASE_URL, QDRANT_HOST, ...). OPENAI_API_KEY / LLM_BASE_URL from GitHub Secrets are written to .env only if the server .env does not already define them.
 
 name: Deploy
 
@@ -36,13 +36,14 @@ jobs:
             git pull origin main
             [ -f .env.deploy.bak ] && mv .env.deploy.bak .env
             export LAKEFLOW_DATA_PATH=/datalake/research
-            if [ -n "${OPENAI_API_KEY:-}" ]; then
-              touch .env
+            # Secrets are only defaults: never override a value already set (or deliberately commented out) in the server .env.
+            touch .env
+            if [ -n "${OPENAI_API_KEY:-}" ] && ! grep -qE '^#?[[:space:]]*OPENAI_API_KEY=' .env; then
               grep -v '^OPENAI_API_KEY=' .env > .env.tmp 2>/dev/null || true
               mv .env.tmp .env
               echo "OPENAI_API_KEY=${OPENAI_API_KEY}" >> .env
             fi
-            if [ -n "${LLM_BASE_URL:-}" ]; then
+            if [ -n "${LLM_BASE_URL:-}" ] && ! grep -qE '^LLM_BASE_URL=' .env; then
               grep -v '^LLM_BASE_URL=' .env > .env.tmp 2>/dev/null || true
               mv .env.tmp .env
               echo "LLM_BASE_URL=${LLM_BASE_URL}" >> .env

@@ -3,7 +3,7 @@ import requests
 from typing import List
 
 import lakeflow.config.env  # noqa: F401 - load .env before config
-from lakeflow.core.config import LLM_BASE_URL
+from lakeflow.core.config import LLM_BASE_URL, EMBED_EXTRA_HEADERS
 
 OLLAMA_EMBED_URL = (
     os.getenv("OLLAMA_EMBED_URL") or f"{LLM_BASE_URL.rstrip('/')}/api/embed"
@@ -36,6 +36,7 @@ def embed_batch(texts: List[str], model: str | None = None) -> List[List[float]]
     response = requests.post(
         OLLAMA_EMBED_URL,
         json=payload,
+        headers=EMBED_EXTRA_HEADERS or None,
         timeout=120
     )
 
