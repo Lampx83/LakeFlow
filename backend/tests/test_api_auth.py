@@ -1,6 +1,10 @@
 """Auth / access-control regression tests for the LakeFlow backend (no Qdrant or LLM needed)."""
+import os
+
 import pytest
 from fastapi.testclient import TestClient
+
+os.environ["LAKEFLOW_ADMIN_PASSWORD"] = "test-only-" + "pw-9f3a"
 
 from lakeflow.core import config
 from lakeflow.core.security import create_access_token
@@ -63,7 +67,7 @@ def test_non_admin_gets_403_not_500(method, path):
 
 
 def test_login_and_admin_access():
-    resp = client.post("/auth/login", json={"username": "admin", "password": "admin123"})
+    resp = client.post("/auth/login", json={"username": "admin", "password": os.environ["LAKEFLOW_ADMIN_PASSWORD"]})
     assert resp.status_code == 200
     token = resp.json()["access_token"]
     assert client.get("/auth/me", headers={"Authorization": f"Bearer {token}"}).json() == {"username": "admin"}
@@ -100,3 +104,7 @@ def test_disallowed_qdrant_url_is_400(monkeypatch):
     monkeypatch.setattr(config, "QDRANT_ALLOWED_URLS", {"http://research:8010"})
     resp = client.get("/qdrant/collections", params={"qdrant_url": "http://evil:6333"}, headers=_bearer("admin"))
     assert resp.status_code == 400
+
+
+def test_old_default_password_is_rejected():
+    assert client.post("/auth/login", json={"username": "admin", "password": "admin123"}).status_code == 401

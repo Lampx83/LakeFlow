@@ -140,9 +140,12 @@ def get_qdrant_url(override: str | None = None) -> str:
 # Comma-separated list of allowed CORS origins; "*" (default) allows any origin but without credentials.
 CORS_ALLOW_ORIGINS = [o.strip() for o in (os.getenv("CORS_ALLOW_ORIGINS") or "*").split(",") if o.strip()]
 
-# Admin account (single-user auth). Set LAKEFLOW_ADMIN_PASSWORD_HASH (bcrypt) to replace the demo password.
+# Admin account (single-user auth). There is NO default password: set LAKEFLOW_ADMIN_PASSWORD_HASH (bcrypt)
+# or LAKEFLOW_ADMIN_PASSWORD, otherwise nobody can log in.
 ADMIN_USERNAME = (os.getenv("LAKEFLOW_ADMIN_USER") or "admin").strip()
 ADMIN_PASSWORD_HASH = (os.getenv("LAKEFLOW_ADMIN_PASSWORD_HASH") or "").strip()
+# Alternative to the hash: plain password in .env (hashed in memory at startup). Neither set = login disabled.
+ADMIN_PASSWORD = (os.getenv("LAKEFLOW_ADMIN_PASSWORD") or "").strip()
 
 # =====================================================
 # LOG BOOT INFO (DEV ONLY)
