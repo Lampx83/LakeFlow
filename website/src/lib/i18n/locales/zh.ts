@@ -288,7 +288,7 @@ export const zh: Record<string, string> = {
   "docs.config.apiBaseUrl": "Frontend 的 Backend URL。Docker: http://lakeflow-backend:8011。本地: http://localhost:8011。",
   "docs.config.lakeflowMode": "DEV = 在 UI 显示 Pipeline Runner，登录表单默认密码。省略或其他 = 隐藏（生产）。",
   "docs.config.llmBaseUrl": "Ollama URL，用于 Q&A、Admission agent、embedding（step3）。如 http://host:11434。",
-  "docs.config.llmModel": "LLM 模型。默认 qwen3:8b。用于 Q&A、Admission Agent。",
+  "docs.config.llmModel": "LLM 模型。默认 qwen3.5-35b-a3b-int4。用于 Q&A、Admission Agent。",
   "docs.config.embedModel": "step3 和 Search API 的 Ollama embed 模型。默认 qwen3-embedding:8b。",
   "docs.config.embedModelOptions": "step3 下拉框模型列表。格式：qwen3-embedding:8b,nomic-embed-text,mxbai-embed-large。",
   "docs.config.ollamaEmbedUrl": "Ollama embed API URL。默认：$LLM_BASE_URL/api/embed。",

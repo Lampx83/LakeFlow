@@ -262,7 +262,7 @@ export const fr: Record<string, string> = {
   "docs.config.apiBaseUrl": "URL Backend pour Frontend. Docker : http://lakeflow-backend:8011. Local : http://localhost:8011.",
   "docs.config.lakeflowMode": "DEV = afficher Pipeline Runner dans l'UI, mot de passe par défaut dans le formulaire. Omettre ou autre = masquer (production).",
   "docs.config.llmBaseUrl": "URL Ollama pour Q&A, Admission agent, embedding (step3). Ex. http://host:11434.",
-  "docs.config.llmModel": "Modèle LLM. Par défaut qwen3:8b. Pour Q&A, Admission Agent.",
+  "docs.config.llmModel": "Modèle LLM. Par défaut qwen3.5-35b-a3b-int4. Pour Q&A, Admission Agent.",
   "docs.config.embedModel": "Modèle embed Ollama pour step3 et Search API. Par défaut qwen3-embedding:8b.",
   "docs.config.embedModelOptions": "Liste de modèles pour dropdown step3. Format : qwen3-embedding:8b,nomic-embed-text,mxbai-embed-large.",
   "docs.config.ollamaEmbedUrl": "URL API embed Ollama. Par défaut : $LLM_BASE_URL/api/embed.",
