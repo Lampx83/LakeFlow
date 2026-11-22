@@ -292,7 +292,7 @@ export const hi: Record<string, string> = {
   "docs.config.apiBaseUrl": "फ्रंटएंड के लिए बैकएंड URL। Docker: http://lakeflow-backend:8011। लोकल: http://localhost:8011।",
   "docs.config.lakeflowMode": "DEV = UI में Pipeline Runner दिखाएं, लॉगिन फॉर्म में डिफ़ॉल्ट पासवर्ड। छोड़ें या अन्य = छिपाएं (प्रोडक्शन)।",
   "docs.config.llmBaseUrl": "Q&A, Admission agent, embedding (step3) के लिए Ollama URL। जैसे http://host:11434।",
-  "docs.config.llmModel": "LLM मॉडल। डिफ़ॉल्ट qwen3:8b। Q&A, Admission Agent के लिए।",
+  "docs.config.llmModel": "LLM मॉडल। डिफ़ॉल्ट qwen3.5-35b-a3b-int4। Q&A, Admission Agent के लिए।",
   "docs.config.embedModel": "step3 और Search API के लिए Ollama embed मॉडल। डिफ़ॉल्ट qwen3-embedding:8b।",
   "docs.config.embedModelOptions": "step3 ड्रॉपडाउन के लिए मॉडल लिस्ट। फॉर्मैट: qwen3-embedding:8b,nomic-embed-text,mxbai-embed-large।",
   "docs.config.ollamaEmbedUrl": "Ollama embed API URL। डिफ़ॉल्ट: $LLM_BASE_URL/api/embed।",

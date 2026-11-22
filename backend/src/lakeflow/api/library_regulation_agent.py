@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from lakeflow.i18n import i18n_detail
 from pydantic import BaseModel, Field
 
-from lakeflow.core.auth import verify_token
+from lakeflow.core.auth import verify_token, verify_token_or_internal
 from lakeflow.common.text_normalizer import canonicalize_text
 from lakeflow.core.config import get_qdrant_url, LLM_MODEL
 from lakeflow.services.ollama_embed_service import embed_batch
@@ -47,9 +47,9 @@ def get_metadata() -> dict:
         "capabilities": ["thư viện", "quy định", "hướng dẫn", "word", "luận văn", "tìm kiếm"],
         "supported_models": [
             {
-                "model_id": "qwen3:8b",
-                "name": "Qwen3 8B",
-                "description": "Mô hình Ollama hỏi đáp dựa trên tài liệu quy định hướng dẫn (Word)",
+                "model_id": LLM_MODEL,
+                "name": "Qwen3.5 35B-A3B (vLLM)",
+                "description": "Mô hình vLLM Qwen3.5 hỏi đáp dựa trên tài liệu quy định hướng dẫn (Word)",
                 "accepted_file_types": [],
             },
         ],
@@ -124,7 +124,7 @@ def get_data(limit: int = Query(100, ge=1, le=500), _user: dict = Depends(verify
 
 
 @router.post("/ask")
-def ask(req: AskRequest, _user: dict = Depends(verify_token)):
+def ask(req: AskRequest, _user: dict = Depends(verify_token_or_internal)):
     """
     RAG: Lấy đoạn tài liệu liên quan từ bộ sưu tập Library_QDHD, gọi LLM trả lời.
     """

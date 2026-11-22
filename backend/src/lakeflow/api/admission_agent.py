@@ -9,7 +9,7 @@ import requests
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from lakeflow.core.auth import verify_token
+from lakeflow.core.auth import verify_token, verify_token_or_internal
 from lakeflow.common.text_normalizer import canonicalize_text
 from lakeflow.services.ollama_embed_service import embed_batch
 from lakeflow.core.config import get_qdrant_url, LLM_BASE_URL, LLM_MODEL, LLM_EXTRA_BODY, llm_headers
@@ -58,9 +58,9 @@ def get_metadata() -> dict:
         "capabilities": ["admission", "tuyen sinh", "quy che", "tai lieu"],
         "supported_models": [
             {
-                "model_id": "qwen3:8b",
-                "name": "Qwen3 8B",
-                "description": "Mo hinh Ollama cho hoi dap dua tren tai lieu Admission",
+                "model_id": LLM_MODEL,
+                "name": "Qwen3.5 35B-A3B (vLLM)",
+                "description": "Mo hinh vLLM Qwen3.5 cho hoi dap dua tren tai lieu Admission",
                 "accepted_file_types": [],
             },
         ],
@@ -210,7 +210,7 @@ def _build_sources_from_contexts(contexts: list[dict]) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 @router.post("/ask")
-def ask(req: AskRequest, _user: dict = Depends(verify_token)):
+def ask(req: AskRequest, _user: dict = Depends(verify_token_or_internal)):
     """
     RAG: Tim context tu semantic search tren collection Admission, goi LLM tra loi.
     """

@@ -288,7 +288,7 @@ export const vi: Record<string, string> = {
   "docs.config.apiBaseUrl": "URL Backend cho Frontend. Docker: http://lakeflow-backend:8011. Local: http://localhost:8011.",
   "docs.config.lakeflowMode": "DEV = hiện Pipeline Runner trong UI, mật khẩu mặc định trong form đăng nhập. Bỏ hoặc khác = ẩn (production).",
   "docs.config.llmBaseUrl": "URL Ollama cho Q&A, Admission agent, embedding (step3). Vd http://host:11434.",
-  "docs.config.llmModel": "Model LLM. Mặc định qwen3:8b. Dùng cho Q&A, Admission Agent.",
+  "docs.config.llmModel": "Model LLM. Mặc định qwen3.5-35b-a3b-int4. Dùng cho Q&A, Admission Agent.",
   "docs.config.embedModel": "Model Ollama embed cho step3 và Search API. Mặc định qwen3-embedding:8b.",
   "docs.config.embedModelOptions": "Danh sách model cho dropdown step3. Format: qwen3-embedding:8b,nomic-embed-text,mxbai-embed-large.",
   "docs.config.ollamaEmbedUrl": "URL API embed Ollama. Mặc định: $LLM_BASE_URL/api/embed.",
